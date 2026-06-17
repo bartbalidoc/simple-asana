@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  avatarUrl     String?
+  role          Role      @default(MEMBER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  lastSeenAt    DateTime?
+
+  projectMemberships ProjectMember[]
+  assignedTasks      Task[]          @relation("AssignedTo")
+  createdTasks       Task[]          @relation("CreatedBy")
+  comments           Comment[]
+  auditLogs          AuditLog[]
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  archivedAt  DateTime?
+
+  members     ProjectMember[]
+  tasks       Task[]
+  columns     Column[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  titleEnc       String
+  descriptionEnc String?
+  goalEnc        String?
+  expectedOutputEnc String?
+  qualityRequirementsEnc String?
+  problemEnc     String?
+  currentWorkflowEnc String?
+  desiredImprovementEnc String?
+  automationOpportunityEnc String?
+
+  status         TaskStatus @default(TODO)
+  priority       Priority   @default(MEDIUM)
+  dueDate        DateTime?
+  order          Float      @default(0)
+  template       String     @default("general")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  completedAt    DateTime?
+
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String
+  column         Column?    @relation(fields: [columnId], references: [id])
+  columnId       String?
+  assignee       User?      @relation("AssignedTo", fields: [assigneeId], references: [id])
+  assigneeId     String?
+  createdBy      User       @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById    String
+
+  parentTask     Task?      @relation("Subtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  parentTaskId   String?
+  subtasks       Task[]     @relation("Subtasks")
+
+  comments       Comment[]
+  attachments    Attachment[]
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  bodyEnc    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  fileName     String
+  mimeType     String
+  driveFileId  String
+  driveViewUrl String
+  sizeBytes    Int
+  uploadedAt   DateTime @default(now())
+
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId       String
+  uploadedById String
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  occurredAt DateTime    @default(now())
+  actorId    String?
+  actor      User?       @relation(fields: [actorId], references: [id])
+  action     AuditAction
+  resource   String
+  resourceId String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+}
+
+enum AuditAction {
+  USER_LOGIN
+  USER_LOGOUT
+  USER_SESSION_TIMEOUT
+  TASK_VIEWED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_DELETED
+  COMMENT_CREATED
+  COMMENT_UPDATED
+  COMMENT_DELETED
+  ATTACHMENT_UPLOADED
+  ATTACHMENT_DOWNLOADED
+  ATTACHMENT_DELETED
+  USER_ROLE_CHANGED
+  USER_DEACTIVATED
+  USER_REACTIVATED
+  PROJECT_CREATED
+  PROJECT_ARCHIVED
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+}
