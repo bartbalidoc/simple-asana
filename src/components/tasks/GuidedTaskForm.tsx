@@ -216,7 +216,7 @@ export function GuidedTaskForm({
       {step >= 3 && (
         <div className="mb-6 pb-6 border-b">
           <label className="block text-sm font-semibold text-gray-900 mb-2">
-            3. What's the problem? <span className="text-gray-500">(optional)</span>
+            3. What&apos;s the problem? <span className="text-gray-500">(optional)</span>
           </label>
           <textarea
             value={problem}

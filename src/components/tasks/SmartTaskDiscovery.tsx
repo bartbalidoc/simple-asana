@@ -28,7 +28,7 @@ const DISCOVERY_QUESTIONS = [
     id: 3,
     label: "What are the acceptance criteria?",
     placeholder: "e.g., Report includes all metrics, sent every Friday 9am, team can customize data fields",
-    hint: "What specific conditions must be met for this to be 'done'?",
+    hint: "What specific conditions must be met for this to be &apos;done&apos;?",
     required: false,
   },
   {
@@ -179,7 +179,7 @@ export function SmartTaskDiscovery({
         Smart Task Discovery
       </h3>
       <p className="text-xs text-gray-500 mb-6">
-        Answer the required question, then skip or answer optional ones. We'll create your task with professional subtasks.
+        Answer the required question, then skip or answer optional ones. We&apos;ll create your task with professional subtasks.
       </p>
 
       {error && (

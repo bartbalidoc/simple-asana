@@ -38,7 +38,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
 
   useEffect(() => {
     fetchAttachments();
-  }, [taskId]);
+  }, [taskId, fetchAttachments]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
