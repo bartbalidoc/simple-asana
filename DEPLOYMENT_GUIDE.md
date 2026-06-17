@@ -9,7 +9,7 @@ Before deploying, ensure you have:
 git init
 git add .
 git commit -m "Initial commit: Simple Asana HIPAA-compliant MVP"
-git remote add origin https://github.com/YOUR_ORG/simple-asana.git
+git remote add origin https://github.com/bartbalidoc/simple-asana.git
 git push -u origin main
 ```
 
