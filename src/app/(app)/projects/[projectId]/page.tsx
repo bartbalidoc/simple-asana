@@ -25,6 +25,37 @@ export default function ProjectPage() {
   const [newTaskName, setNewTaskName] = useState("");
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   const [showGuidedForm, setShowGuidedForm] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const [addingMember, setAddingMember] = useState(false);
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMemberError(null);
+    if (!memberEmail.trim()) return;
+
+    try {
+      setAddingMember(true);
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: memberEmail.toLowerCase().trim() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to add member");
+      }
+
+      setMemberEmail("");
+      await fetchProject();
+    } catch (err) {
+      setMemberError(err instanceof Error ? err.message : "Failed to add member");
+    } finally {
+      setAddingMember(false);
+    }
+  };
 
   const fetchProject = useCallback(async () => {
     try {
@@ -162,8 +193,64 @@ export default function ProjectPage() {
           >
             Smart Discovery
           </button>
+          <button
+            onClick={() => setShowMembers(!showMembers)}
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              showMembers
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            👥 Members ({project.members?.length || 0})
+          </button>
         </div>
       </div>
+
+      {showMembers && (
+        <div className="mb-6 bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Project Members</h3>
+
+          <div className="space-y-2 mb-4">
+            {(project.members || []).map((m: any) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2"
+              >
+                <span className="text-gray-700">
+                  {m.user?.name}{" "}
+                  <span className="text-gray-400">({m.user?.email})</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {memberError && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+              {memberError}
+            </div>
+          )}
+
+          <form onSubmit={handleAddMember} className="flex gap-2">
+            <input
+              type="email"
+              value={memberEmail}
+              onChange={(e) => setMemberEmail(e.target.value)}
+              placeholder="teammate@balidoc.com"
+              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-600"
+            />
+            <button
+              type="submit"
+              disabled={addingMember || !memberEmail.trim()}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm"
+            >
+              {addingMember ? "Adding..." : "Add Member"}
+            </button>
+          </form>
+          <p className="text-xs text-gray-500 mt-2">
+            The person must already have an account (registered with their email).
+          </p>
+        </div>
+      )}
 
       {showNewTaskForm && (
         <form onSubmit={handleCreateTask} className="mb-6 bg-white rounded-lg shadow p-4 flex gap-2">

@@ -27,6 +27,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [creatingSubtask, setCreatingSubtask] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -37,6 +38,18 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
         setTask(data);
         setTemplate(data.template || "general");
         setError(null);
+
+        // Load project members so we can assign the task to someone
+        if (data.projectId) {
+          try {
+            const membersRes = await fetch(`/api/projects/${data.projectId}/members`);
+            if (membersRes.ok) {
+              setMembers(await membersRes.json());
+            }
+          } catch {
+            // Non-fatal: assignee dropdown just won't have options
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
       } finally {
@@ -46,6 +59,23 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
 
     fetchTask();
   }, [taskId]);
+
+  const handleAssigneeChange = async (assigneeId: string | null) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeId }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update assignee");
+      const updated = await response.json();
+      setTask(updated);
+      onTaskUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update assignee");
+    }
+  };
 
   const handleSave = async () => {
     if (Object.keys(updates).length === 0) {
@@ -420,6 +450,25 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
             />
           </div>
         )}
+
+        {/* Assignee */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Assigned To
+          </label>
+          <select
+            value={task.assigneeId || ""}
+            onChange={(e) => handleAssigneeChange(e.target.value || null)}
+            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+          >
+            <option value="">Unassigned</option>
+            {members.map((m) => (
+              <option key={m.user.id} value={m.user.id}>
+                {m.user.name} ({m.user.email})
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Status */}
         <div>
