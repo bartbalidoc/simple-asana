@@ -77,6 +77,23 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
     }
   };
 
+  const handlePriorityChange = async (priority: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update priority");
+      const updated = await response.json();
+      setTask(updated);
+      onTaskUpdated?.(); // refresh board so the card badge updates immediately
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update priority");
+    }
+  };
+
   const handleSave = async () => {
     if (Object.keys(updates).length === 0) {
       setHasChanges(false);
@@ -518,10 +535,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
             <label className="block text-sm font-semibold text-gray-900 mb-2">Priority</label>
             <select
               value={updates.priority !== undefined ? updates.priority : task.priority}
-              onChange={(e) => {
-                setUpdates({ ...updates, priority: e.target.value });
-                setHasChanges(true);
-              }}
+              onChange={(e) => handlePriorityChange(e.target.value)}
               className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
             >
               <option value="LOW">Low</option>
