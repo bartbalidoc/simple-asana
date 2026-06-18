@@ -20,6 +20,12 @@ export default function ProjectPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  // Open a specific task when linked from the dashboard (?task=<id>)
+  useEffect(() => {
+    const taskParam = new URLSearchParams(window.location.search).get("task");
+    if (taskParam) setSelectedTaskId(taskParam);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
