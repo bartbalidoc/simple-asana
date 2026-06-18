@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SessionTimeoutWarning } from "@/components/layout/SessionTimeoutWarning";
+import { SignOutButton } from "@/components/layout/SignOutButton";
 
 export default async function AppLayout({
   children,
@@ -51,9 +52,7 @@ export default async function AppLayout({
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">{session.user.email}</span>
-              <a href="/api/auth/signout" className="text-sm text-blue-600 hover:text-blue-700">
-                Sign Out
-              </a>
+              <SignOutButton />
             </div>
           </div>
         </header>

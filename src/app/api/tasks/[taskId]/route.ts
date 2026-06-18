@@ -82,6 +82,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         title: decrypt(st.titleEnc),
         description: st.descriptionEnc ? decrypt(st.descriptionEnc) : null,
       })) || [],
+      comments: task.comments?.map((c) => ({
+        ...c,
+        body: c.bodyEnc ? decrypt(c.bodyEnc) : "",
+      })) || [],
     };
 
     await writeAuditLog({

@@ -28,7 +28,7 @@ const DISCOVERY_QUESTIONS = [
     id: 3,
     label: "What are the acceptance criteria?",
     placeholder: "e.g., Report includes all metrics, sent every Friday 9am, team can customize data fields",
-    hint: "What specific conditions must be met for this to be &apos;done&apos;?",
+    hint: "What specific conditions must be met for this to be 'done'?",
     required: false,
   },
   {

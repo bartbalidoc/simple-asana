@@ -104,6 +104,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoFocus
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
               placeholder="you@example.com"
             />
@@ -148,6 +149,7 @@ export default function LoginPage() {
             <>
               Don&apos;t have an account?{" "}
               <button
+                type="button"
                 onClick={() => {
                   setMode("register");
                   setError(null);
@@ -161,6 +163,7 @@ export default function LoginPage() {
             <>
               Already have an account?{" "}
               <button
+                type="button"
                 onClick={() => {
                   setMode("login");
                   setError(null);
@@ -181,6 +184,7 @@ export default function LoginPage() {
               <div className="flex-1 border-t border-gray-200" />
             </div>
             <button
+              type="button"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
               className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"
