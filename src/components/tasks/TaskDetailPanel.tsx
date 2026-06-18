@@ -10,6 +10,7 @@ interface Subtask {
   id: string;
   title: string;
   status: string;
+  order?: number;
 }
 
 interface TaskDetailPanelProps {
@@ -135,6 +136,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
           title: newSubtaskTitle,
           parentTaskId: taskId,
           template: "general",
+          order: task.subtasks?.length || 0,
         }),
       });
 
@@ -203,6 +205,54 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
     } catch (err) {
       console.error("Subtask delete error:", err);
       setError(err instanceof Error ? err.message : "Failed to delete subtask");
+    }
+  };
+
+  const handleUpdateSubtaskTitle = async (subtaskId: string, title: string) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+
+    // Optimistic update
+    setTask({
+      ...task,
+      subtasks: task.subtasks.map((s: Subtask) =>
+        s.id === subtaskId ? { ...s, title: trimmed } : s
+      ),
+    });
+
+    try {
+      const response = await fetch(`/api/tasks/${subtaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!response.ok) throw new Error("Failed to update subtask");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update subtask");
+    }
+  };
+
+  const handleMoveSubtask = async (index: number, direction: -1 | 1) => {
+    const list = [...(task.subtasks || [])];
+    const target = index + direction;
+    if (target < 0 || target >= list.length) return;
+
+    // Swap positions locally, then persist the new order for both
+    [list[index], list[target]] = [list[target], list[index]];
+    setTask({ ...task, subtasks: list });
+
+    try {
+      await Promise.all(
+        list.map((s: Subtask, i: number) =>
+          fetch(`/api/tasks/${s.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order: i }),
+          })
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reorder subtasks");
     }
   };
 
@@ -609,29 +659,54 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
 
           {task.subtasks && task.subtasks.length > 0 && (
             <div className="space-y-2 mb-3">
-              {task.subtasks.map((subtask: Subtask) => (
+              {task.subtasks.map((subtask: Subtask, index: number) => (
                 <div
                   key={subtask.id}
-                  className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm hover:bg-gray-100 transition"
+                  className="flex items-center gap-1 p-2 bg-gray-50 rounded text-sm hover:bg-gray-100 transition"
                 >
                   <input
                     type="checkbox"
                     checked={subtask.status === "DONE"}
-                    onChange={() => {
-                      console.log("Checkbox clicked for subtask:", subtask.id, "status:", subtask.status);
-                      handleToggleSubtaskStatus(subtask.id, subtask.status);
-                    }}
+                    onChange={() =>
+                      handleToggleSubtaskStatus(subtask.id, subtask.status)
+                    }
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                   />
-                  <span
-                    className={`flex-1 ${
+                  <input
+                    type="text"
+                    defaultValue={subtask.title}
+                    onBlur={(e) => {
+                      if (e.target.value.trim() !== subtask.title) {
+                        handleUpdateSubtaskTitle(subtask.id, e.target.value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    }}
+                    className={`flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-600 focus:outline-none px-1 ${
                       subtask.status === "DONE"
                         ? "line-through text-gray-400"
                         : "text-gray-700"
                     }`}
-                  >
-                    {subtask.title}
-                  </span>
+                  />
+                  <div className="flex flex-col leading-none">
+                    <button
+                      onClick={() => handleMoveSubtask(index, -1)}
+                      disabled={index === 0}
+                      className="text-gray-400 hover:text-blue-600 disabled:opacity-30 text-[10px]"
+                      title="Move up"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => handleMoveSubtask(index, 1)}
+                      disabled={index === task.subtasks.length - 1}
+                      className="text-gray-400 hover:text-blue-600 disabled:opacity-30 text-[10px]"
+                      title="Move down"
+                    >
+                      ▼
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleDeleteSubtask(subtask.id)}
                     className="text-gray-400 hover:text-red-600 transition text-xs px-1"

@@ -104,7 +104,16 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions);
     const { projectId } = params;
 
-    if (!session?.user?.id || session.user.role !== "ADMIN") {
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Any member of the project (or an admin) can remove people from it
+    const requesterMembership = await prisma.projectMember.findFirst({
+      where: { projectId, userId: session.user.id },
+    });
+
+    if (!requesterMembership && session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -52,7 +52,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           include: { author: true },
         },
         attachments: true,
-        subtasks: true,
+        subtasks: {
+          orderBy: { order: "asc" },
+        },
       },
     });
 
@@ -218,7 +220,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       include: {
         assignee: true,
         createdBy: true,
-        subtasks: true,
+        subtasks: {
+          orderBy: { order: "asc" },
+        },
       },
     });
 

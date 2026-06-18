@@ -66,6 +66,25 @@ export default function ProjectPage() {
     }
   };
 
+  const handleRemoveMember = async (userId?: string, name?: string) => {
+    if (!userId) return;
+    if (!confirm(`Remove ${name || "this person"} from the project?`)) return;
+    setMemberError(null);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members?userId=${userId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to remove member");
+      }
+      await fetchProject();
+    } catch (err) {
+      setMemberError(err instanceof Error ? err.message : "Failed to remove member");
+    }
+  };
+
   const fetchProject = useCallback(async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}`);
@@ -251,6 +270,13 @@ export default function ProjectPage() {
                   {m.user?.name}{" "}
                   <span className="text-gray-400">({m.user?.email})</span>
                 </span>
+                <button
+                  onClick={() => handleRemoveMember(m.user?.id, m.user?.name)}
+                  className="text-gray-400 hover:text-red-600 transition text-xs px-1"
+                  title="Remove from project"
+                >
+                  ✕ Remove
+                </button>
               </div>
             ))}
           </div>

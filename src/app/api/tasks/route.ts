@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         assigneeId: assigneeId || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         priority: priority || "MEDIUM",
-        order: 0,
+        order: typeof body.order === "number" ? body.order : 0,
       },
       include: {
         assignee: true,
