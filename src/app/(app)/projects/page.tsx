@@ -14,6 +14,7 @@ interface Project {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -88,12 +89,14 @@ export default function ProjectsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          {showForm ? "Cancel" : "New Project"}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            {showForm ? "Cancel" : "New Project"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -169,15 +172,17 @@ export default function ProjectsPage() {
                         <div className="text-yellow-600">{inProgressCount} in progress</div>
                         <div className="text-green-600">{doneCount} done</div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDeleteProject(project.id);
-                        }}
-                        className="text-red-600 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteProject(project.id);
+                          }}
+                          className="text-red-600 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

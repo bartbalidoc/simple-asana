@@ -29,23 +29,27 @@ export async function POST(req: NextRequest) {
 
     const answersText = answeredQuestions.join("\n\n");
 
-    // Additional context for stakeholders, acceptance criteria, and blockers
-    const stakeholders = answers[2]?.trim() ? `\nKey stakeholders: ${answers[2]}` : "";
-    const acceptanceCriteria = answers[3]?.trim()
-      ? `\nAcceptance criteria: ${answers[3]}`
+    // Field mapping (question ids): 1=task name, 2=objective, 3=problem,
+    // 4=stakeholders, 5=acceptance criteria, 6=blockers, 7=complexity, 8=automation
+    const taskName = answers[1]?.trim() ? `\nTask name (use this as the title): ${answers[1]}` : "";
+    const problem = answers[3]?.trim() ? `\nProblem / current situation: ${answers[3]}` : "";
+    const stakeholders = answers[4]?.trim() ? `\nKey stakeholders: ${answers[4]}` : "";
+    const acceptanceCriteria = answers[5]?.trim()
+      ? `\nAcceptance criteria: ${answers[5]}`
       : "";
-    const blockers = answers[4]?.trim() ? `\nPotential blockers/dependencies: ${answers[4]}` : "";
-    const complexity = answers[5]?.trim() ? `\nEstimated complexity: ${answers[5]}` : "";
-    const automation = answers[6]?.trim() ? `\nAutomation idea from the user: ${answers[6]}` : "";
+    const blockers = answers[6]?.trim() ? `\nPotential blockers/dependencies: ${answers[6]}` : "";
+    const complexity = answers[7]?.trim() ? `\nEstimated complexity: ${answers[7]}` : "";
+    const automation = answers[8]?.trim() ? `\nAutomation idea from the user: ${answers[8]}` : "";
 
     const prompt = `You are a Scrum PM at an automation-focused team creating a clear, deliverable-focused task. Use this discovery:
 
-${answersText}${stakeholders}${acceptanceCriteria}${blockers}${complexity}${automation}
+${answersText}${taskName}${problem}${stakeholders}${acceptanceCriteria}${blockers}${complexity}${automation}
 
 Your job:
-1. Create a CLEAR task title (max 10 words, focus on the outcome)
+1. Use the provided task name as the "title" verbatim (do not rewrite it).
 2. Write a PROFESSIONAL task description that:
    - Opens with the core objective (the "why" and "what")
+   - Summarizes the problem / current situation if provided
    - Includes stakeholders if relevant
    - Lists acceptance criteria if provided
    - Mentions key dependencies if any

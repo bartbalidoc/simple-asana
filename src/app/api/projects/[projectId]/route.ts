@@ -33,20 +33,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure user is member of project
-    await prisma.projectMember.upsert({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId: session.user.id,
-        },
-      },
-      update: {},
-      create: {
-        projectId,
-        userId: session.user.id,
-      },
-    });
+    // Admins can view any project; workers must already be a member.
+    if (session.user.role !== "ADMIN") {
+      const membership = await prisma.projectMember.findFirst({
+        where: { projectId, userId: session.user.id },
+      });
+      if (!membership) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+    }
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },

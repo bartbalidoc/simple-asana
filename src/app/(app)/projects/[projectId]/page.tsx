@@ -30,6 +30,14 @@ export default function ProjectPage() {
   const [memberEmail, setMemberEmail] = useState("");
   const [memberError, setMemberError] = useState<string | null>(null);
   const [addingMember, setAddingMember] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAllUsers)
+      .catch(() => setAllUsers([]));
+  }, []);
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,23 +262,33 @@ export default function ProjectPage() {
           )}
 
           <form onSubmit={handleAddMember} className="flex gap-2">
-            <input
-              type="email"
+            <select
               value={memberEmail}
               onChange={(e) => setMemberEmail(e.target.value)}
-              placeholder="teammate@balidoc.com"
               className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-600"
-            />
+            >
+              <option value="">Choose a person to assign…</option>
+              {allUsers
+                .filter(
+                  (u) =>
+                    !(project.members || []).some((m: any) => m.user?.email === u.email)
+                )
+                .map((u) => (
+                  <option key={u.id} value={u.email}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+            </select>
             <button
               type="submit"
               disabled={addingMember || !memberEmail.trim()}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm"
             >
-              {addingMember ? "Adding..." : "Add Member"}
+              {addingMember ? "Adding..." : "Assign to project"}
             </button>
           </form>
           <p className="text-xs text-gray-500 mt-2">
-            The person must already have an account (registered with their email).
+            Assigning a person to the project lets them see and work on its board.
           </p>
         </div>
       )}

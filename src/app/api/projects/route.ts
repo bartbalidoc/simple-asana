@@ -12,14 +12,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Admins see every project; workers see only the projects they belong to.
+    const isAdmin = session.user.role === "ADMIN";
+
     const projects = await prisma.project.findMany({
-      where: {
-        members: {
-          some: {
-            userId: session.user.id,
+      where: isAdmin
+        ? {}
+        : {
+            members: {
+              some: {
+                userId: session.user.id,
+              },
+            },
           },
-        },
-      },
       include: {
         members: true,
         tasks: true,
@@ -44,6 +49,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Only admins create projects; workers are assigned to them.
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only an admin can create projects" },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     const { name, description } = body;

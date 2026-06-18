@@ -191,6 +191,27 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.order !== undefined) updateData.order = body.order;
     if (body.template !== undefined) updateData.template = body.template;
 
+    // Assigning a task to someone grants them access to its project so they
+    // can actually see and work on it.
+    if (body.assigneeId) {
+      const taskForProject = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: { projectId: true },
+      });
+      if (taskForProject?.projectId) {
+        await prisma.projectMember.upsert({
+          where: {
+            projectId_userId: {
+              projectId: taskForProject.projectId,
+              userId: body.assigneeId,
+            },
+          },
+          update: {},
+          create: { projectId: taskForProject.projectId, userId: body.assigneeId },
+        });
+      }
+    }
+
     const task = await prisma.task.update({
       where: { id: taskId },
       data: updateData,

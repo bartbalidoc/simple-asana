@@ -39,16 +39,14 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
         setTemplate(data.template || "general");
         setError(null);
 
-        // Load project members so we can assign the task to someone
-        if (data.projectId) {
-          try {
-            const membersRes = await fetch(`/api/projects/${data.projectId}/members`);
-            if (membersRes.ok) {
-              setMembers(await membersRes.json());
-            }
-          } catch {
-            // Non-fatal: assignee dropdown just won't have options
+        // Load the whole team so the task can be assigned to anyone
+        try {
+          const usersRes = await fetch(`/api/users`);
+          if (usersRes.ok) {
+            setMembers(await usersRes.json());
           }
+        } catch {
+          // Non-fatal: assignee dropdown just won't have options
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
@@ -502,9 +500,9 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
             className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
           >
             <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.user.id} value={m.user.id}>
-                {m.user.name} ({m.user.email})
+            {members.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.email})
               </option>
             ))}
           </select>

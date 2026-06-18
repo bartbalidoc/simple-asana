@@ -12,41 +12,55 @@ interface SmartTaskDiscoveryProps {
 const DISCOVERY_QUESTIONS = [
   {
     id: 1,
-    label: "What is the user story or objective?",
-    placeholder: "e.g., As a project coordinator, I want to automate the weekly report so that we save 2 hours per week",
-    hint: "Focus on who benefits, what they need, and why it matters. This is required.",
+    label: "What's the task name?",
+    placeholder: "e.g., Automate weekly performance report",
+    hint: "A short, clear title. This becomes the task's name.",
     required: true,
   },
   {
     id: 2,
+    label: "What's the objective?",
+    placeholder: "e.g., Save 2 hours every week and remove manual errors from the weekly report",
+    hint: "What are we trying to achieve, and why does it matter?",
+    required: true,
+  },
+  {
+    id: 3,
+    label: "Describe the problem or current situation",
+    placeholder: "e.g., Right now the report is built by hand in Excel every Friday and often has copy-paste mistakes",
+    hint: "What's happening today that this task addresses?",
+    required: false,
+  },
+  {
+    id: 4,
     label: "Who are the key stakeholders?",
     placeholder: "e.g., Project leads, finance team, engineering, design",
     hint: "Who needs to be consulted or involved in this task?",
     required: false,
   },
   {
-    id: 3,
+    id: 5,
     label: "What are the acceptance criteria?",
     placeholder: "e.g., Report includes all metrics, sent every Friday 9am, team can customize data fields",
     hint: "What specific conditions must be met for this to be 'done'?",
     required: false,
   },
   {
-    id: 4,
+    id: 6,
     label: "What could block or delay this?",
     placeholder: "e.g., Need API access to data sources, depends on design system completion",
     hint: "What dependencies, unknowns, or risks exist?",
     required: false,
   },
   {
-    id: 5,
+    id: 7,
     label: "How complex is this task?",
     placeholder: "e.g., Small (1-2 days), Medium (1-2 weeks), Large (3+ weeks)",
     hint: "Rough estimate for planning and prioritization",
     required: false,
   },
   {
-    id: 6,
+    id: 8,
     label: "Could any part of this be automated?",
     placeholder: "e.g., The weekly report is pulled and emailed by hand today — could be auto-generated from the CRM every Friday",
     hint: "What's done manually today, and what should it become? Leave blank if not applicable.",
@@ -100,7 +114,11 @@ export function SmartTaskDiscovery({
 
   const handleCreate = async () => {
     if (!answers[1]?.trim()) {
-      setError("Question 1 (user story) is required to create a task");
+      setError("A task name (Question 1) is required to create a task");
+      return;
+    }
+    if (!answers[2]?.trim()) {
+      setError("An objective (Question 2) is required to create a task");
       return;
     }
 
@@ -124,8 +142,11 @@ export function SmartTaskDiscovery({
         throw new Error(err.error || "Failed to generate task");
       }
 
-      const { title, description, subtasks, automationOpportunity } =
+      const { description, subtasks, automationOpportunity } =
         await aiResponse.json();
+
+      // Use the user's explicit task name as the title (Q1), not an AI guess.
+      const title = answers[1].trim();
 
       console.log("Generated task:", { title, description, subtasks });
 
@@ -139,7 +160,7 @@ export function SmartTaskDiscovery({
           columnId: firstColumnId,
           title,
           description,
-          automationOpportunity: automationOpportunity || answers[6] || null,
+          automationOpportunity: automationOpportunity || answers[8] || null,
           template: "general",
         }),
       });
