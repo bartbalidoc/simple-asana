@@ -1,89 +1,168 @@
-Simple Asana — Complete Test Report
-ENVIRONMENT: http://206.189.200.138:3000
-DATE: 2026-06-18
-TESTER: Claude (automated)
+Here's a comprehensive audit of the current state and a full list of improvements to implement. I'll organize it so you can paste this directly to Claude in VS Code.
 
-PART 3 RESULTS SUMMARY
-1 Auth & Session:     5/9
-2 Projects:           4/4
-3 Members & Assign:   4/4
-4 Task Creation:      7/8
-5 Detail & Editing:   5/8
-6 Board & a11y:       2/4
-7 Performance/Stress: 3/5 (partially tested)
-8 Data/Security:      2/4
-9 Edge Cases:         3/4
+Full Audit & Improvement Spec — Simple Asana
 
-GOLDEN PATH (Part 2): ⚠️  Mostly passes — blocked on login UI bug (API works; UI form does not redirect after sign-in)
+🔍 What I Found (Current State)
+Smart Task Discovery — 5 steps:
 
-BLOCKING BUGS: Sign-in form submits but never redirects; Sign Out button creates infinite callbackUrl redirect loop; comment body not rendered; Discard does not revert changes
+User story / objective (Required)
+Key stakeholders (Optional / skippable)
+Acceptance criteria (Optional / skippable)
+Blockers / delays (Optional / skippable)
+Task complexity (Optional / skippable) → "Create Task"
 
-VERDICT:  ⚠️  Minor/Moderate issues — several UX bugs prevent users from completing basic flows without workarounds
+Task card (board): Shows title + priority badge (MEDIUM). Nothing else visible on the card itself.
+Task detail panel (right slide-in): Template selector, Description (AI-generated), Assigned To, Status, Priority, Due Date, Subtasks (AI-generated list), Attachments (Google Drive), Comments.
 
-SECTION-BY-SECTION DETAIL
-Section 1 — Authentication & Session (5/9)
-#TestResultNotes1.1Register primaryPASStestuser@balidoc.com already existed; email/password form shown (no Google)1.2Domain restrictionPARTIALAPI correctly returns 403 + "Only @balidoc.com email addresses are allowed", but the UI never displays this error — form silently resets1.3Register secondaryPASSteammate@balidoc.com already existed and credentials work1.4Login + wrong passwordPARTIALAPI rejects the credential, but the UI shows no error message — form silently resets1.5Duplicate registrationPASSShows "An account with this email already exists" inline (this one error does render correctly)1.6Short passwordPARTIALAPI returns 400 + "Password must be at least 8 characters", but UI shows no error — same silent-reset bug as 1.2/1.41.7Session persistencePASSNavigating to /login while authenticated redirects to /dashboard1.8LogoutPARTIALBLOCKING BUG: The "Sign Out" link in the UI navigates to /api/auth/signout via GET, which enters an infinite exponentially-nested callbackUrl redirect loop (URL grows with each redirect until the page is unresponsive). Logout only works via manual POST to /api/auth/signout.1.9Multi-tabNOT TESTEDCould not fully test due to sign-in form bug
-Root cause of 1.2/1.4/1.6 failures: The login/register form uses NextAuth's signIn() / a custom /api/auth/register endpoint. Error responses from the server are never surfaced to the user. The form just resets on failure, leaving users with no feedback.
-Root cause of 1.8 failure: The Sign Out link is an <a href="/api/auth/signout"> (GET request). NextAuth's signout requires a POST. The GET triggers a redirect to the login page, but the login page's callbackUrl parameter points back to itself, creating an infinite loop. Fix: replace with a form POST or a button that calls signOut() from the NextAuth client.
+❌ What's Missing or Wrong
+Smart Task Discovery — Missing Fields
+The wizard only covers 5 steps. Per your spec, the following are entirely absent:
 
-Section 2 — Projects (4/4)
-#TestResultNotes2.1Create projectPASS"Q3 Client Onboarding" created; card shows 0 tasks, 1 member; board has 4 columns in correct order2.2Special chars / long namePASS (via Test 4.3)Emoji and accent characters persist correctly2.3Invalid URLPASS/projects/invalid-id-xyz shows "Project not found" with working "← Back to Projects"2.4Multiple projectsPASS5 projects rendered in grid without lag
-Minor bug: The page header <h1> always reads "Dashboard" regardless of which page is active (projects list, project board, etc.).
+Task/project name (explicit title input — currently AI-infers it, which is hit or miss)
+Responsible person (Owner/Assignee — not asked during discovery)
+Goal of the task (partially covered by user story, but not clearly separated)
+Expected output (no dedicated field)
+Deadline or frequency (no date field in wizard)
+Quality requirements (not asked)
+Required input or information (not asked)
+People involved (stakeholders step exists but is vague and skippable)
+Current status (not settable during creation)
+Next steps (not captured)
+Blockers or risks (step 4 exists but is skippable and vague)
+Documentation location (not asked)
+Possible automation opportunities (not asked)
+Possible long-term value for BaliDoc (not asked)
 
-Section 3 — Members & Assignment (4/4)
-#TestResultNotes3.1Add memberPASSteammate@balidoc.com added; count updated to "Members (2)"3.2Error casesPASS"User not found" shown for unknown email; "User is already a member of this project" shown for duplicate3.3Assign taskPASSAssigned To dropdown lists all members; selecting Second Teammate immediately reflects on board card; Unassigned clears the name3.4Cross-user visibilityPASSLogged in as teammate@balidoc.com: sees Q3 Client Onboarding (member of) but NOT Test Project for Feature Review (not a member). Assigned task is visible.
+Task Detail Panel — Missing Fields
+All of the above are also absent from the task detail/edit panel. The current fields are: Description (blob), Assigned To, Status, Priority, Due Date, Subtasks, Attachments, Comments. There's no structured place for goal, expected output, quality requirements, next steps, documentation link, automation notes, or long-term value.
+Task Board (Kanban) — Issues
 
-Section 4 — Task Creation (7/8)
-#TestResultNotes4.1Quick Task happy pathPASS"Set up onboarding email template" appears in To Do with MEDIUM badge4.2Validation inlinePASSSpaces-only → "Task title is required"; 256+ chars → "Task title must be less than 255 characters" — both inline, no page crash4.3Special charsPASS"Tâche avec émojis 🎯 et accents" persists and renders correctly4.4Smart Discovery fast pathPASSAI service is configured; Q1 answered, Q2–Q5 skipped → AI-generated title + description + 8 subtasks4.5Smart Discovery full contextPARTIALWizard shows all 5 questions; AI-generated output synthesizes the objective. Full 5-answer test not run.4.6Skipped-question contextPASSStep 3 shows "📝 You said earlier:" with Q1 text and Q2 "(Skipped)" in grey4.7Escape & CancelPASSEscape key closes wizard; Cancel button also closes4.8Rapid creationNOT TESTED10-task stress test not completed
-Minor bug: Step 3 description renders &apos; as literal text instead of the ' character — HTML entity encoding error in the wizard description strings.
+Cards show only a title and a priority badge — no owner avatar, no due date, no subtask progress, no assignee name visible at a glance
+No drag-and-drop between columns
+No drag-and-drop for subtasks (you asked for this specifically)
+Columns have no task count
+No "Add task" shortcut directly in a column (you have to click the header buttons)
+Empty columns are just blank white boxes — no empty state / call-to-action
 
-Section 5 — Task Detail & Editing (5/8)
-#TestResultNotes5.1Always-editablePASSFields are direct inputs (no Edit button). Priority change to High → "Save Changes"/"Discard" appear at panel bottom → Save persists on refresh5.2DiscardFAILBUG: Clicking Discard does NOT revert field values to the last-saved state — changes remain visible5.3Template switchPASSSwitching to "Automation Brief" template surfaces template-specific fields (Problem Statement, Current Workflow, etc.)5.4Status moves cardPASSStatus To Do → In Progress immediately moves card to correct column; persists across page reload5.5SubtasksPASSChecking a subtask → strikethrough text + "Subtasks (1/8)" progress counter updates; ✕ delete button visible on hover5.6CommentsPARTIALComment posts and shows author + timestamp. BUG: Comment body text is not rendered — only name and timestamp appear5.7AttachmentsNOT TESTEDUpload File button present; Google Drive integration not tested5.8Delete taskPARTIALTask is deleted and removed from board. BUG: No confirmation dialog — deletion is immediate and irreversible with one click
-Additional observation: The task title is not shown as an editable input field within the panel body — it is only visible in the truncated panel header. Users cannot easily view or edit the full title from the panel.
+UX / Language Issues
 
-Section 6 — Board & Accessibility (2/4)
-#TestResultNotes6.1Board consistencyPASSTasks persist in their correct columns across page refreshes6.2Drag & dropNOT TESTED6.3Keyboard navPARTIALEscape key closes overlays (✓); full Tab/focus-ring/Enter flow not systematically tested6.4Long contentPASS"Tâche avec émojis 🎯 et accents" title truncates cleanly in card, no layout break
-
-Section 7 — Performance & Stress (3/5)
-#TestResultNotes7.150-task volumePARTIAL~10 tasks rendered fine; 50-task test not run7.220 subtasksPARTIAL8 subtasks (AI-generated) render and persist correctly; 20-subtask stress not run7.320 commentsNOT TESTEDComment body bug found first7.4Slow networkNOT TESTED7.5Memory leakNOT TESTED
-
-Section 8 — Data Integrity & Security (2/4)
-#TestResultNotes8.1Encryption in transitPASSAPI responses return readable JSON (task titles, descriptions decrypted as expected); HTTP only on staging8.2Access controlPASSUnauthenticated access to project URLs redirects to login; teammate only sees projects they belong to8.3Audit loggingNOT TESTEDNo admin view exposed; cannot verify from browser8.4No plaintext PHI in DBNOT TESTEDNo DB access available
-
-Section 9 — Edge Cases (3/4)
-#TestResultNotes9.1Invalid task/project IDPASSGraceful "Project not found" page with back link9.2Null due datePASSDisplays date input placeholder "mm/dd/yyyy", not "null"9.3OfflineNOT TESTED9.4Whitespace title on editPASS (via Test 4.2)Spaces-only title blocked with "Task title is required"
-
-BLOCKING BUGS (Prioritized)
-B1 — Sign Out infinite redirect loop (CRITICAL)
-Clicking "Sign Out" navigates via GET to /api/auth/signout, which requires a POST. The page enters an exponentially-growing callbackUrl redirect loop that renders the browser tab unresponsive. Users cannot log out via the UI. Fix: Replace the <a href="/api/auth/signout"> link with a form or button that posts to NextAuth's signout endpoint (e.g., signOut() from next-auth/react).
-B2 — Login/Register form never shows error messages (HIGH)
-The Sign In, Register, and (by extension) all auth forms silently discard server errors. Wrong password, invalid domain, short password — none produce visible feedback. The API returns correct error codes and messages (verified via direct calls), but the UI form simply resets. Fix: Handle the error response from signIn() / the register API and set it into component state for display.
-B3 — Comment body text not rendered (HIGH)
-Posted comments appear with only the author name and relative timestamp. The comment content itself is absent from the rendered DOM. Fix: Check the comments rendering component — the content field is likely not being passed to the template or is being mapped to the wrong key.
-B4 — Discard button does not revert (MEDIUM)
-Clicking "Discard" on the task detail panel does not restore the previously saved field values — the unsaved changes remain. Fix: The Discard handler should reset the local form state back to the last-fetched server values.
-B5 — Delete task has no confirmation dialog (MEDIUM)
-Clicking the "Delete" button in the task panel header immediately deletes the task with no confirmation prompt. In a HIPAA context with important task data, irreversible actions should require confirmation. Fix: Add a modal confirm step ("Are you sure you want to delete this task?").
-
-ADDITIONAL BUGS & FRICTION
-
-Page header always shows "Dashboard" regardless of the active page (Projects list, board, etc.) — cosmetic but confusing.
-Task title not editable inline in panel — the title is only shown truncated in the panel header; there is no editable input for the full title in the panel body.
-Board card priority badge does not update until Save is clicked — after changing priority, the card shows the old badge until the user explicitly saves and the panel re-fetches. (Status changes auto-save and update immediately; priority/description do not.)
-HTML entity &apos; not decoded in Smart Discovery Step 3 description text — raw entity string visible to users.
-Register button is type="submit" which submits the current (sign-in) form before React state toggles the view — likely the root cause of the form-toggle appearing to not work on first click.
+"Step 1 of 5" is too technical/sterile — no visual indication of what's coming
+The "You said earlier:" recap panel is a good idea but visually cramped
+"What is the user story or objective?" — too Scrum-jargon-y for non-tech users
+"What are the acceptance criteria?" — very tech-oriented language
+"How complex is this task?" with a free-text answer is vague (should be a selector)
+No task title field — the AI auto-generates the title but users can't edit it until after creation
+The progress bar (top right) is too thin and barely noticeable
+"Cancel" button sits dangerously close to "Next →" and "Create Task" — easy to accidentally cancel
+The "General Task / Automation Brief / Documentation / Process Improvement / Project Coordination" template dropdown in the detail panel is hidden/obscure — users don't know it exists
+Subtask list has no drag-and-drop handles — reordering is impossible
+Subtasks have no assignee, no due date, no status of their own
+No keyboard shortcuts (Enter to go next, etc.)
+"Smart Discovery" button stays highlighted/active even when not in wizard mode — confusing
+No save indicator — users don't know if changes are auto-saved
+The task title in the detail panel is truncated ("Track website redesign pro…") with no way to see/edit the full title
+No way to add a task directly to a specific column
+"MEDIUM" badge uses an ugly yellow/olive color
+No sprint/iteration concept even loosely present
 
 
-GOLDEN PATH VERDICT
-⚠️ Partially blocked. The full golden path — Register → create project → add teammate → create task via Smart Discovery → assign to teammate → set priority/due date → add & complete a subtask → comment → move to Done → refresh → everything persists — mostly works at the data layer, but two UX bugs prevent a smooth real-world run:
+✅ Full Improvement Spec for Claude in VS Code
+1. Smart Task Discovery — Redesign
+Replace the 5 wizard steps with 8 friendlier, scrum-lite steps:
+StepNew Label (plain language)Field NameRequired?1"What are we working on?"title + goalRequired2"Who owns this and who's involved?"owner (dropdown from members) + people_involved (multi-select or free text)Required3"What does 'done' look like?"expected_output + quality_requirementsOptional4"When does it need to happen?"deadline (date picker) + frequency (toggle: one-time / recurring)Optional5"What do we need to get started?"required_inputOptional6"What could slow us down?"blockers_risksOptional7"Where do we document this?"documentation_location (URL or text)Optional8"Could this be automated or grow into something bigger?"automation_opportunities + long_term_valueOptional
 
-The Sign In form does not redirect after successful login (requires navigating directly to /dashboard).
-Comments post but the body text is invisible, making the "Collaborate" step non-functional for the user.
+Each step should show a friendly icon, a plain-language label, and a short hint below (no Scrum jargon)
+Step 1 "user story" format should be optional/suggested, not the default prompt
+The progress bar should be thicker, show step dots/numbers, and label the current step
+"Skip" should read "Skip for now →" for clarity
+Add keyboard support: Enter → Next, Esc → Cancel with confirmation
+The "You said earlier" recap should be a collapsible sidebar, not a cramped panel at the bottom
 
-Everything else in the golden path (project creation, Smart Discovery with AI subtasks, assignment, priority, status board movement, subtask completion, refresh persistence) does work correctly.
+2. Task Detail Panel — Redesign
+Replace the current single Description blob with structured sections using tabs or an accordion:
+Section 1 — Overview
 
-NEW GAPS OBSERVED (Additions to Part 4)
-G16 — No task title editable field in detail panel. The title exists only in the truncated panel header. Users cannot read or edit the full title without either knowing it already or going elsewhere.
-G17 — New Project form opens inline (not modal), stays below existing cards. Usable but may be confusing as the form appears far from the button on pages with many projects.
-G18 — Members panel shows "User is already a member" error that persists visibly even after switching to Quick Task or Smart Discovery view — the error banner stays on screen until the Members panel is closed.
-G19 — Sign In form does not auto-focus the email field on page load, forcing an extra click. Minor but friction for daily users.
+Title (editable, full-width, large)
+Goal (what this is for)
+Expected output (what done looks like)
+Owner (dropdown)
+People involved (multi-tag)
+Status (current Kanban column — auto-synced)
+Priority (Low / Medium / High — pill selector, not dropdown)
+Deadline / Frequency
+Size/Complexity (XS / S / M / L / XL — pill selector)
+
+Section 2 — Requirements
+
+Quality requirements
+Required input or information
+
+Section 3 — Progress
+
+Current status (free text note, e.g. "waiting for design files")
+Next steps (ordered list)
+Subtasks (with drag-and-drop reorder, each subtask has: title, assignee, due date, status checkbox)
+
+Section 4 — Risks & Blockers
+
+Blockers or risks (free text or list)
+
+Section 5 — Documentation & Future
+
+Documentation location (clickable URL field)
+Automation opportunities
+Long-term value for BaliDoc
+
+Section 6 — Activity
+
+Attachments (keep as-is, Google Drive link)
+Comments (keep as-is)
+
+3. Kanban Board — Redesign
+Task cards should show:
+
+Title (2 lines max, truncated)
+Owner avatar + name (small, bottom left)
+Due date (with red color if overdue)
+Priority badge (better colors: Low=green, Medium=blue, High=red — not yellow/olive)
+Subtask progress bar (e.g. "3/7 done")
+A subtle drag handle (⠿) on hover
+
+Board improvements:
+
+Full drag-and-drop between columns (update status automatically)
+Subtask drag-and-drop within the detail panel
+Column headers show task count (e.g. "To Do (3)")
+Each column has a "+ Add task" button at the bottom
+Empty columns show a friendly empty state: "Nothing here yet — drag a task here or click + to add one"
+Add a "Backlog" column before "To Do" (optional, togglable)
+
+4. General UX / Navigation
+
+Auto-save indicator: Small "Saved ✓" or spinning indicator in the detail panel header
+Full title visible: Don't truncate the task title in the panel header — make it a large editable <h2> input
+"Smart Discovery" button: Should deactivate visually when the wizard is closed
+Quick Task button: Should open a minimal inline form (title + owner + due date only) — not the full wizard
+Session persistence: Currently clicking the close (×) button appears to log out — fix this bug (closing the task panel should NOT navigate away or log out)
+Keyboard shortcuts: N = new task, E = edit, D = toggle done, Esc = close panel
+Search/filter bar on the board: filter by owner, priority, due date
+Board vs. List view toggle: A simple list/table view is easier to audit for a PM
+Sidebar navigation: "Projects" is just a link — it should expand to show sub-items. "Dashboard" should show an overview of all tasks across projects
+Project name ("12334") should be editable inline — that's clearly a placeholder/ID, not a real name
+
+
+🎨 Visual / Style Issues
+
+The "MEDIUM" badge uses an olive/yellow color that looks unfinished — define a clean color system
+The task detail panel is too narrow (fixed right-side drawer) — it should be wider or expandable, since it now needs to show many more fields
+The Smart Discovery wizard card has too much whitespace — the progress bar, question, and recap should all be more compact and visually engaging
+Typography: section labels in the detail panel are too similar in weight to content — use clearer hierarchy (smaller caps labels vs. larger content text)
+Add subtle section dividers in the detail panel so it doesn't feel like one long form
+The "Delete" link in the panel header is red and prominent — make it a small icon (🗑) that only turns red on hover, or move it to a "..." menu to prevent accidents
+Mobile: the current layout is not responsive — the Kanban board overflows on smaller screens
+
+
+🐛 Bug
+Critical bug found: Clicking the × (close) button on the task detail panel appears to trigger a full sign-out / session reset. The task also disappeared from the board after closing the panel. This needs to be investigated — the close button may be navigating to a route that clears auth state, or the task wasn't being persisted properly before panel close.
+
+This gives you a complete picture of everything to rebuild. When you take this to Claude in VS Code, I'd suggest tackling it in this order: (1) fix the session/close bug, (2) redesign the task detail panel with structured fields, (3) redesign the Smart Discovery wizard steps, (4) improve the Kanban cards with drag-and-drop, (5) clean up visual styling. Let me know when you're ready to iterate!

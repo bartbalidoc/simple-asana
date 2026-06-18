@@ -19,6 +19,7 @@ interface Task {
   assignee?: { id: string; name: string; email: string } | null;
   dueDate?: string | null;
   order: number;
+  subtasks?: { id: string; status: string }[];
 }
 
 interface KanbanBoardProps {
@@ -125,8 +126,21 @@ export function KanbanBoard({
                   )}
                 </div>
 
-                {task.dueDate && (
+                {task.subtasks && task.subtasks.length > 0 && (
                   <p className="text-xs text-gray-500 mt-2">
+                    ✓ {task.subtasks.filter((s) => s.status === "DONE").length}/
+                    {task.subtasks.length} subtasks
+                  </p>
+                )}
+
+                {task.dueDate && (
+                  <p
+                    className={`text-xs mt-2 ${
+                      new Date(task.dueDate) < new Date() && task.status !== "DONE"
+                        ? "text-red-600 font-medium"
+                        : "text-gray-500"
+                    }`}
+                  >
                     Due {new Date(task.dueDate).toLocaleDateString()}
                   </p>
                 )}

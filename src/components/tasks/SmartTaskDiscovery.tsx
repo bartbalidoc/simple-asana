@@ -45,6 +45,13 @@ const DISCOVERY_QUESTIONS = [
     hint: "Rough estimate for planning and prioritization",
     required: false,
   },
+  {
+    id: 6,
+    label: "Could any part of this be automated?",
+    placeholder: "e.g., The weekly report is pulled and emailed by hand today — could be auto-generated from the CRM every Friday",
+    hint: "What's done manually today, and what should it become? Leave blank if not applicable.",
+    required: false,
+  },
 ];
 
 export function SmartTaskDiscovery({
@@ -117,11 +124,13 @@ export function SmartTaskDiscovery({
         throw new Error(err.error || "Failed to generate task");
       }
 
-      const { title, description, subtasks } = await aiResponse.json();
+      const { title, description, subtasks, automationOpportunity } =
+        await aiResponse.json();
 
       console.log("Generated task:", { title, description, subtasks });
 
-      // Create the task
+      // Create the task. Fall back to the user's raw automation answer if the
+      // AI didn't return a distilled one.
       const taskResponse = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,6 +139,7 @@ export function SmartTaskDiscovery({
           columnId: firstColumnId,
           title,
           description,
+          automationOpportunity: automationOpportunity || answers[6] || null,
           template: "general",
         }),
       });

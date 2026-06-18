@@ -469,6 +469,28 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
           </div>
         )}
 
+        {currentTemplate.fields.automationOpportunity && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              ⚡ Automation Opportunity
+            </label>
+            <textarea
+              value={
+                updates.automationOpportunity !== undefined
+                  ? updates.automationOpportunity
+                  : task.automationOpportunity || ""
+              }
+              onChange={(e) => {
+                setUpdates({ ...updates, automationOpportunity: e.target.value });
+                setHasChanges(true);
+              }}
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              rows={2}
+              placeholder="What's done manually today, and what could it become?"
+            />
+          </div>
+        )}
+
         {/* Assignee */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">

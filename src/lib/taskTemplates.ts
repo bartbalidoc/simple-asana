@@ -30,6 +30,7 @@ export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
       priority: true,
       dueDate: true,
       assignee: true,
+      automationOpportunity: true,
     },
   },
 

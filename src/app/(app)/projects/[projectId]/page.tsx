@@ -174,7 +174,21 @@ export default function ProjectPage() {
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
+        <input
+          value={project.name}
+          onChange={(e) => setProject({ ...project, name: e.target.value })}
+          onBlur={async (e) => {
+            const newName = e.target.value.trim();
+            if (!newName) return;
+            await fetch(`/api/projects/${projectId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: newName }),
+            });
+          }}
+          className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-blue-600 focus:outline-none"
+          aria-label="Project name"
+        />
         <div className="flex gap-2">
           <button
             onClick={() => {

@@ -36,10 +36,11 @@ export async function POST(req: NextRequest) {
       : "";
     const blockers = answers[4]?.trim() ? `\nPotential blockers/dependencies: ${answers[4]}` : "";
     const complexity = answers[5]?.trim() ? `\nEstimated complexity: ${answers[5]}` : "";
+    const automation = answers[6]?.trim() ? `\nAutomation idea from the user: ${answers[6]}` : "";
 
-    const prompt = `You are a Scrum PM creating a clear, deliverable-focused task. Use this discovery:
+    const prompt = `You are a Scrum PM at an automation-focused team creating a clear, deliverable-focused task. Use this discovery:
 
-${answersText}${stakeholders}${acceptanceCriteria}${blockers}${complexity}
+${answersText}${stakeholders}${acceptanceCriteria}${blockers}${complexity}${automation}
 
 Your job:
 1. Create a CLEAR task title (max 10 words, focus on the outcome)
@@ -49,12 +50,14 @@ Your job:
    - Lists acceptance criteria if provided
    - Mentions key dependencies if any
 3. Generate 5-8 CONCRETE subtasks in verb-noun format that break down the actual deliverable work
+4. If the discovery mentions automation, distill a short "automationOpportunity" note (1-2 sentences: the manual step today and what it should become). If automation is NOT mentioned, return an empty string for it.
 
 RULES:
 - Do NOT invent details, dates, or technical specs not in the discovery
 - Do NOT use "Q2 2024" or vague timelines
 - DO use exact information from the discovery
 - DO make subtasks small, actionable, and testable ("Implement X", "Review Y with Z", "Document A")
+- If automation is in scope, DO include automation-oriented subtasks (e.g. "Identify the trigger event", "Connect systems via API", "Test an automated run end-to-end")
 - DO group related work logically
 - DO consider the complexity estimate when sizing subtasks
 
@@ -66,7 +69,8 @@ Respond ONLY with valid JSON (no markdown, no explanation, just JSON):
     "Verb-noun subtask 1",
     "Verb-noun subtask 2",
     "Verb-noun subtask 3"
-  ]
+  ],
+  "automationOpportunity": "Short note on what to automate, or empty string"
 }`;
 
     console.log("Sending prompt to Claude:", prompt.substring(0, 200) + "...");
@@ -124,6 +128,7 @@ Respond ONLY with valid JSON (no markdown, no explanation, just JSON):
       title: parsed.title,
       description: parsed.description,
       subtasks: parsed.subtasks,
+      automationOpportunity: parsed.automationOpportunity || "",
     });
   } catch (error) {
     console.error("POST /api/ai/generate-task-with-subtasks error:", error);
