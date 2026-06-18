@@ -23,6 +23,7 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   const [showGuidedForm, setShowGuidedForm] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
@@ -77,13 +78,15 @@ export default function ProjectPage() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
     if (!newTaskName.trim()) {
-      setError("Task title is required");
+      setFormError("Task title is required");
       return;
     }
 
     if (newTaskName.length > 255) {
-      setError("Task title must be less than 255 characters");
+      setFormError("Task title must be less than 255 characters");
       return;
     }
 
@@ -91,7 +94,7 @@ export default function ProjectPage() {
       const firstColumn = project?.columns?.[0];
 
       if (!firstColumn) {
-        setError("No columns in project. Please refresh the page.");
+        setFormError("No columns in project. Please refresh the page.");
         return;
       }
 
@@ -100,18 +103,22 @@ export default function ProjectPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId,
-          title: newTaskName,
+          title: newTaskName.trim(),
           columnId: firstColumn.id,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to create task");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to create task (${response.status})`);
+      }
 
       setNewTaskName("");
       setShowNewTaskForm(false);
       await fetchProject();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create task");
+      // Use formError so a creation failure doesn't replace the whole page
+      setFormError(err instanceof Error ? err.message : "Failed to create task");
     }
   };
 
@@ -126,7 +133,9 @@ export default function ProjectPage() {
       if (!response.ok) throw new Error("Failed to update task");
       await fetchProject();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update task");
+      // Don't replace the whole page on a drag-drop failure
+      console.error("Task update failed:", err);
+      setFormError(err instanceof Error ? err.message : "Failed to update task");
     }
   };
 
@@ -253,33 +262,43 @@ export default function ProjectPage() {
       )}
 
       {showNewTaskForm && (
-        <form onSubmit={handleCreateTask} className="mb-6 bg-white rounded-lg shadow p-4 flex gap-2">
-          <label htmlFor="quickTaskInput" className="sr-only">
-            Task name
-          </label>
-          <input
-            id="quickTaskInput"
-            type="text"
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            placeholder="Task name..."
-            className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-          >
-            Add
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowNewTaskForm(false)}
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
-          >
-            Cancel
-          </button>
-        </form>
+        <div className="mb-6 bg-white rounded-lg shadow p-4">
+          {formError && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+              {formError}
+            </div>
+          )}
+          <form onSubmit={handleCreateTask} className="flex gap-2">
+            <label htmlFor="quickTaskInput" className="sr-only">
+              Task name
+            </label>
+            <input
+              id="quickTaskInput"
+              type="text"
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              placeholder="Task name..."
+              className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewTaskForm(false);
+                setFormError(null);
+              }}
+              className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
+            >
+              Cancel
+            </button>
+          </form>
+        </div>
       )}
 
       {showGuidedForm && (

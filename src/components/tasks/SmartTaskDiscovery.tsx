@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SmartTaskDiscoveryProps {
   projectId: string;
@@ -163,17 +163,22 @@ export function SmartTaskDiscovery({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onCancel?.();
-    }
-  };
+  // Close the wizard on Escape from anywhere (document-level, not just when a
+  // field inside is focused).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel?.();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
 
   return (
     <div
       className="bg-white rounded-lg shadow p-6 mb-6"
       onClick={(e) => e.stopPropagation()}
-      onKeyDown={handleKeyDown}
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
         Smart Task Discovery
