@@ -31,6 +31,7 @@ services:
       PHI_ENCRYPTION_KEY: ${PHI_ENCRYPTION_KEY}
       ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN}
       GOOGLE_SERVICE_ACCOUNT_KEY_B64: ${GOOGLE_SERVICE_ACCOUNT_KEY_B64}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       db:
         condition: service_healthy
