@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Simple Asana",
-  description: "HIPAA-compliant project management tool",
+  title: "BaliDoc · Project Hub",
+  description: "BaliDoc internal project & task management — Your Health, Our Priority",
 };
 
 export default function RootLayout({

@@ -172,7 +172,7 @@ export function GuidedTaskForm({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Streamline patient intake process"
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
           />
           {title.trim() && (
             <button
@@ -197,7 +197,7 @@ export function GuidedTaskForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add any additional context or details..."
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
             rows={2}
           />
           {description.trim() && (
@@ -222,7 +222,7 @@ export function GuidedTaskForm({
             value={problem}
             onChange={(e) => setProblem(e.target.value)}
             placeholder="Describe the issue or pain point..."
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
             rows={3}
           />
           {problem.trim() && (
@@ -247,7 +247,7 @@ export function GuidedTaskForm({
             value={currentWorkflow}
             onChange={(e) => setCurrentWorkflow(e.target.value)}
             placeholder="Describe the current process or workflow..."
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
             rows={3}
           />
           {currentWorkflow.trim() && (
@@ -272,7 +272,7 @@ export function GuidedTaskForm({
             value={desiredImprovement}
             onChange={(e) => setDesiredImprovement(e.target.value)}
             placeholder="Describe the desired outcome or improvement..."
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
             rows={3}
           />
           {desiredImprovement.trim() && (
@@ -297,7 +297,7 @@ export function GuidedTaskForm({
             value={automationOpportunity}
             onChange={(e) => setAutomationOpportunity(e.target.value)}
             placeholder="Describe potential automation opportunities or solutions..."
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
             rows={3}
           />
           {automationOpportunity.trim() && (
@@ -330,7 +330,7 @@ export function GuidedTaskForm({
             <button
               onClick={() => setStep(step + 1)}
               disabled={step === 1 && !title.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded text-sm"
             >
               Next →
             </button>

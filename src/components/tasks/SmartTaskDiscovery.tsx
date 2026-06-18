@@ -232,7 +232,7 @@ export function SmartTaskDiscovery({
           </span>
           <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all"
+              className="h-full bg-red-600 transition-all"
               style={{ width: `${(step / DISCOVERY_QUESTIONS.length) * 100}%` }}
             />
           </div>
@@ -261,7 +261,7 @@ export function SmartTaskDiscovery({
               setAnswers({ ...answers, [step]: e.target.value })
             }
             placeholder={currentQuestion.placeholder}
-            className="w-full border border-gray-300 rounded p-3 text-sm focus:outline-none focus:border-blue-600 min-h-24"
+            className="w-full border border-gray-300 rounded p-3 text-sm focus:outline-none focus:border-red-500 min-h-24"
           />
         </div>
       )}
@@ -310,7 +310,7 @@ export function SmartTaskDiscovery({
               <button
                 onClick={handleNext}
                 disabled={!isAnswered}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded text-sm"
               >
                 Next →
               </button>

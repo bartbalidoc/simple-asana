@@ -98,7 +98,7 @@ export function KanbanBoard({
                 tabIndex={0}
                 role="button"
                 aria-label={task.title}
-                className={`w-full text-left bg-white rounded-lg p-3 shadow-sm hover:shadow-md border border-gray-200 hover:border-blue-300 transition cursor-move focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full text-left bg-white rounded-lg p-3 shadow-sm hover:shadow-md border border-gray-200 hover:border-red-300 transition cursor-move focus:outline-none focus:ring-2 focus:ring-red-500 ${
                   draggedTask?.id === task.id ? "opacity-50" : ""
                 }`}
               >

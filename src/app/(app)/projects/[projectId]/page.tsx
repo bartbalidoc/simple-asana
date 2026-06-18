@@ -170,7 +170,7 @@ export default function ProjectPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
+          <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-2" />
           <p className="text-gray-600">Loading project...</p>
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function ProjectPage() {
           <p className="text-red-600 text-sm mb-4">{error}</p>
           <a
             href="/projects"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+            className="inline-block bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded"
           >
             ← Back to Projects
           </a>
@@ -213,7 +213,7 @@ export default function ProjectPage() {
               body: JSON.stringify({ name: newName }),
             });
           }}
-          className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-blue-600 focus:outline-none"
+          className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none"
           aria-label="Project name"
         />
         <div className="flex gap-2">
@@ -224,7 +224,7 @@ export default function ProjectPage() {
             }}
             className={`px-4 py-2 rounded-lg text-sm transition ${
               showNewTaskForm
-                ? "bg-blue-600 text-white hover:bg-blue-700"
+                ? "bg-red-600 text-white hover:bg-red-700"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
@@ -291,7 +291,7 @@ export default function ProjectPage() {
             <select
               value={memberEmail}
               onChange={(e) => setMemberEmail(e.target.value)}
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-600"
+              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-red-500"
             >
               <option value="">Choose a person to assign…</option>
               {allUsers
@@ -336,12 +336,12 @@ export default function ProjectPage() {
               value={newTaskName}
               onChange={(e) => setNewTaskName(e.target.value)}
               placeholder="Task name..."
-              className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600 text-sm"
+              className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
               autoFocus
             />
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
             >
               Add
             </button>

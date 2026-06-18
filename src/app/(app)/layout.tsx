@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SessionTimeoutWarning } from "@/components/layout/SessionTimeoutWarning";
 import { SignOutButton } from "@/components/layout/SignOutButton";
+import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
 
 export default async function AppLayout({
   children,
@@ -18,40 +19,65 @@ export default async function AppLayout({
   return (
     <>
       <SessionTimeoutWarning />
-      <div className="flex h-screen bg-gray-100">
-      {/* Sidebar placeholder */}
-      <div className="w-64 bg-white shadow-md">
-        <div className="p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Simple Asana</h2>
+      <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div className="px-5 py-5 border-b border-gray-100">
+          <BaliDocLogo size={34} showText />
         </div>
-        <nav className="p-4">
-          <a href="/dashboard" className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded">
+        <nav className="p-3 space-y-1">
+          <a
+            href="/dashboard"
+            className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+          >
             Dashboard
           </a>
-          <a href="/projects" className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded">
+          <a
+            href="/projects"
+            className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+          >
             Projects
           </a>
           {session?.user?.role === "ADMIN" && (
             <>
-              <hr className="my-4" />
-              <a href="/admin/users" className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded">
+              <div className="px-4 pt-4 pb-1 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+                Admin
+              </div>
+              <a
+                href="/admin/users"
+                className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+              >
                 Users
               </a>
-              <a href="/admin/audit-log" className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded">
+              <a
+                href="/admin/audit-log"
+                className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+              >
                 Audit Log
               </a>
             </>
           )}
         </nav>
+        <div className="mt-auto p-4 border-t border-gray-100 text-[10px] text-gray-400 tracking-wide">
+          YOUR HEALTH · OUR PRIORITY
+        </div>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white shadow">
-          <div className="px-6 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <header className="bg-white border-b border-gray-200">
+          <div className="h-1 bg-gradient-to-r from-rose-500 via-red-600 to-red-700" />
+          <div className="px-6 py-3 flex justify-between items-center">
+            <span className="text-sm font-semibold text-gray-500">Project &amp; Task Hub</span>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{session.user.email}</span>
+              <span className="text-sm text-gray-600">
+                {session.user.email}
+                {session.user.role === "ADMIN" && (
+                  <span className="ml-2 text-[10px] font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                    Admin
+                  </span>
+                )}
+              </span>
               <SignOutButton />
             </div>
           </div>

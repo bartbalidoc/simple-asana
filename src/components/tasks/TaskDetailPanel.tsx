@@ -289,7 +289,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
     return (
       <div className="fixed right-0 top-0 h-screen w-96 bg-white shadow-lg p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
+          <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-2" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -325,7 +325,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, title: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-blue-400 focus:border-blue-600 focus:outline-none mb-2 bg-transparent"
+              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-blue-400 focus:border-red-500 focus:outline-none mb-2 bg-transparent"
               placeholder="Task title..."
             />
             <p className="text-xs text-gray-500">
@@ -362,7 +362,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
               setTemplate(e.target.value);
               setHasChanges(true);
             }}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
           >
             {Object.values(TASK_TEMPLATES).map((t) => (
               <option key={t.id} value={t.id}>
@@ -386,7 +386,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, description: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={3}
               placeholder="Add a description..."
             />
@@ -402,7 +402,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, goal: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What is the goal of this task?"
             />
@@ -420,7 +420,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, expectedOutput: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What should be delivered?"
             />
@@ -438,7 +438,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, problem: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What's the problem?"
             />
@@ -456,7 +456,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, currentWorkflow: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="How is it currently done?"
             />
@@ -474,7 +474,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, desiredImprovement: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What should improve?"
             />
@@ -492,7 +492,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, qualityRequirements: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What quality standards?"
             />
@@ -510,7 +510,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, blockers: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What could block this?"
             />
@@ -532,7 +532,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, automationOpportunity: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 bg-white"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
               rows={2}
               placeholder="What's done manually today, and what could it become?"
             />
@@ -547,7 +547,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
           <select
             value={task.assigneeId || ""}
             onChange={(e) => handleAssigneeChange(e.target.value || null)}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
           >
             <option value="">Unassigned</option>
             {members.map((u) => (
@@ -590,7 +590,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setError(err instanceof Error ? err.message : "Failed to update status");
               }
             }}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
           >
             <option value="TODO">To Do</option>
             <option value="IN_PROGRESS">In Progress</option>
@@ -606,7 +606,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
             <select
               value={updates.priority !== undefined ? updates.priority : task.priority}
               onChange={(e) => handlePriorityChange(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
             >
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
@@ -634,7 +634,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                 setUpdates({ ...updates, dueDate: e.target.value || null });
                 setHasChanges(true);
               }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
             />
           </div>
         )}
@@ -683,7 +683,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                     onKeyDown={(e) => {
                       if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                     }}
-                    className={`flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-600 focus:outline-none px-1 ${
+                    className={`flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-red-500 focus:outline-none px-1 ${
                       subtask.status === "DONE"
                         ? "line-through text-gray-400"
                         : "text-gray-700"
@@ -726,12 +726,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
               onChange={(e) => setNewSubtaskTitle(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleCreateSubtask()}
               placeholder="Add a subtask..."
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-600"
+              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
             />
             <button
               onClick={handleCreateSubtask}
               disabled={creatingSubtask || !newSubtaskTitle.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition"
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition"
             >
               Add
             </button>
@@ -756,7 +756,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
           <div className="flex gap-2 pt-4 border-t">
             <button
               onClick={handleSave}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition"
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition"
             >
               Save Changes
             </button>

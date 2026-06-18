@@ -2,6 +2,7 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -61,14 +62,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-blue-600">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-96">
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">
-          Simple Asana
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          HIPAA-compliant project management
-        </p>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-rose-500 via-red-600 to-red-800 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="flex flex-col items-center mb-8">
+          <BaliDocLogo size={56} showText showTagline />
+          <p className="text-center text-gray-500 text-sm mt-4">
+            Project & Task Hub
+          </p>
+        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
@@ -88,7 +89,7 @@ export default function LoginPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
                 placeholder="Jane Doe"
               />
             </div>
@@ -105,7 +106,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
               placeholder="you@example.com"
             />
           </div>
@@ -121,7 +122,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
               placeholder={mode === "register" ? "At least 8 characters" : "••••••••"}
             />
           </div>
@@ -129,7 +130,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-sm"
           >
             {isLoading ? (
               <>
@@ -154,7 +155,7 @@ export default function LoginPage() {
                   setMode("register");
                   setError(null);
                 }}
-                className="text-blue-600 hover:underline font-medium"
+                className="text-red-600 hover:underline font-medium"
               >
                 Register
               </button>
@@ -168,7 +169,7 @@ export default function LoginPage() {
                   setMode("login");
                   setError(null);
                 }}
-                className="text-blue-600 hover:underline font-medium"
+                className="text-red-600 hover:underline font-medium"
               >
                 Sign in
               </button>

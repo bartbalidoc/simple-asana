@@ -56,7 +56,7 @@ export function CommentForm({ taskId, onCommentAdded }: CommentFormProps) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Add a comment..."
-        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-blue-600"
         rows={2}
         disabled={loading}
       />
@@ -66,7 +66,7 @@ export function CommentForm({ taskId, onCommentAdded }: CommentFormProps) {
       <button
         type="submit"
         disabled={loading || !body.trim()}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2 px-4 rounded text-sm transition"
+        className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-2 px-4 rounded text-sm transition"
       >
         {loading ? "Posting..." : "Post Comment"}
       </button>

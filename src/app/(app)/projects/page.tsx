@@ -92,7 +92,7 @@ export default function ProjectsPage() {
         {isAdmin && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
           >
             {showForm ? "Cancel" : "New Project"}
           </button>
@@ -109,7 +109,7 @@ export default function ProjectsPage() {
               type="text"
               value={newProject.name}
               onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500"
               placeholder="e.g., Website Redesign"
             />
           </div>
@@ -121,7 +121,7 @@ export default function ProjectsPage() {
             <textarea
               value={newProject.description}
               onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-600"
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500"
               rows={3}
             />
           </div>
@@ -131,7 +131,7 @@ export default function ProjectsPage() {
           <button
             type="submit"
             disabled={creating}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed"
           >
             {creating ? "Creating..." : "Create Project"}
           </button>
@@ -140,7 +140,7 @@ export default function ProjectsPage() {
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
+          <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto" />
         </div>
       ) : projects.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
