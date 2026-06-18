@@ -1,5 +1,7 @@
 import { type NextAuthOptions, type DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
 declare module "next-auth" {
@@ -22,9 +24,45 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
+    CredentialsProvider({
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase() },
+        });
+
+        if (!user || !user.passwordHash || !user.isActive) {
+          return null;
+        }
+
+        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
+        if (!valid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
+      },
+    }),
   ],
   callbacks: {
     async signIn({ account, profile }) {
+      // Credentials login is already verified in authorize()
+      if (account?.provider === "credentials") {
+        return true;
+      }
+
       const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN;
       if (!allowedDomain) {
         return true;
