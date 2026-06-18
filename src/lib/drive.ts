@@ -35,13 +35,20 @@ export async function uploadFileToDrive(
 ): Promise<{ fileId: string; webViewLink: string }> {
   const drive = initializeDriveClient();
 
+  // Files must land in a folder/Shared Drive the service account can write to —
+  // a service account has no storage quota of its own.
+  const targetFolder = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+  if (!targetFolder) {
+    throw new Error(
+      "GOOGLE_DRIVE_FOLDER_ID environment variable is not set (no destination folder for uploads)"
+    );
+  }
+
   const fileMetadata: any = {
     name: fileName,
+    parents: [targetFolder],
   };
-
-  if (folderId) {
-    fileMetadata.parents = [folderId];
-  }
 
   const media = {
     mimeType,
@@ -52,6 +59,7 @@ export async function uploadFileToDrive(
     requestBody: fileMetadata,
     media,
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
 
   return {
@@ -62,5 +70,5 @@ export async function uploadFileToDrive(
 
 export async function deleteFileFromDrive(fileId: string): Promise<void> {
   const drive = initializeDriveClient();
-  await drive.files.delete({ fileId });
+  await drive.files.delete({ fileId, supportsAllDrives: true });
 }
