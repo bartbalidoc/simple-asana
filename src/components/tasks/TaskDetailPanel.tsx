@@ -95,6 +95,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
       setTask(updated);
       setUpdates({});
       setHasChanges(false);
+      onTaskUpdated?.(); // refresh the board so card priority/title update immediately
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save task");
     }
