@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  // Linting and type-checking run in CI / locally, not in the memory-constrained
+  // Docker production build. This keeps `next build` from OOMing on small VPS instances.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {
