@@ -1,260 +1,159 @@
-# Simple Asana — HIPAA-Compliant Project Management MVP
+# Simple Asana — MVP
 
-A healthcare team tool for secure, encrypted task management with audit logging. Built with Next.js, Prisma, and AES-256-GCM encryption.
+An internal project-management tool for the BaliDoc team: an admin creates projects and assigns work; workers see and complete their assigned tasks. Built with Next.js 14, Prisma, PostgreSQL, and AES-256-GCM encryption for sensitive fields.
 
-## Quick Start
+> This README describes the **MVP as currently deployed** (email/password login, staging on a single VPS).
+> For the production, HIPAA-hardened version with Google Workspace sign-in, see **[README_HIPAA.md](README_HIPAA.md)**.
 
-### 1. Environment Setup
+---
 
-Copy `.env.example` to `.env.local` and fill in your values:
+## What it does
 
-```bash
-cp .env.example .env.local
+- **Email + password login**, restricted to `@balidoc.com` addresses. (Google sign-in is built but disabled for the MVP.)
+- **Admin / worker roles:**
+  - **Admin** (`sidney@balidoc.com`) creates projects, sees **all** boards, and manages members.
+  - **Workers** see **only** the projects they've been assigned to.
+- **Smart Discovery** task creation — an 8-question flow that turns intent into a well-formed task with AI-generated description and subtasks:
+  1. Task name (required → becomes the title)
+  2. Objective (required)
+  3. Problem / current situation
+  4. Key stakeholders
+  5. Acceptance criteria
+  6. Blockers / risks
+  7. Complexity
+  8. **Automation opportunity** (what's manual today, what it should become)
+- **Quick Task** for simple to-dos.
+- **Kanban board** (To Do / In Progress / In Review / Done) with drag-and-drop, color-coded priority (High=red, Medium=yellow, Low=green), subtask progress (`✓ 2/7`), and overdue dates in red.
+- **Task detail panel** — always-editable fields, status, priority, due date, **assign to any team member**, subtasks (add/complete/delete), an **⚡ Automation Opportunity** field, comments, and file attachments.
+- **Assignment** — assigning a task to someone **auto-grants them access** to that project.
+- **File attachments** stored in a Google Drive Shared Drive (service account).
+- **PHI fields encrypted at rest** (AES-256-GCM) and **audit logging** of access/changes.
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 14 (App Router) + TypeScript |
+| DB | PostgreSQL + Prisma (schema synced via `prisma db push`) |
+| Auth | NextAuth v4 — Credentials (email/password); Google provider present but disabled |
+| Encryption | Node `crypto` AES-256-GCM (lazy key validation) |
+| AI | OpenAI (`gpt-4o-mini`) for Smart Discovery |
+| Files | Google Drive API (service account → Shared Drive) |
+| Deploy | Docker Compose on a VPS (DigitalOcean droplet) |
+
+---
+
+## Environment variables
+
+Set these in a `.env` file (used by `docker-compose.yml`):
+
+```
+DB_PASSWORD=               # Postgres password (DATABASE_URL is built from this in compose)
+NEXTAUTH_URL=              # e.g. http://206.189.200.138:3000
+NEXTAUTH_SECRET=           # openssl rand -base64 32
+PHI_ENCRYPTION_KEY=        # 64 hex chars: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ALLOWED_EMAIL_DOMAIN=balidoc.com
+OPENAI_API_KEY=            # enables Smart Discovery AI
+GOOGLE_SERVICE_ACCOUNT_KEY_B64=   # base64 of the Drive service-account JSON (for attachments)
+GOOGLE_DRIVE_FOLDER_ID=    # the Shared Drive ID files upload into
+SEED_SECRET=               # secret for the one-time team-roster seed endpoint
+NEXT_TELEMETRY_DISABLED=1
+# GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET — only needed if you re-enable Google sign-in
 ```
 
-Required environment variables:
-- `DATABASE_URL` — PostgreSQL connection string
-- `NEXTAUTH_URL` — Your app URL (e.g., http://localhost:3000)
-- `NEXTAUTH_SECRET` — Generate: `openssl rand -base64 32`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — From Google Cloud Console
-- `PHI_ENCRYPTION_KEY` — 64-char hex key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-- `ALLOWED_EMAIL_DOMAIN` — Your organization's email domain (e.g., yourhospital.org)
-- `GOOGLE_SERVICE_ACCOUNT_KEY_B64` — Base64-encoded Google Drive service account JSON (optional for file uploads)
+---
 
-### 2. Local Development
+## Run locally
 
-Install dependencies:
 ```bash
 npm install
-```
-
-Generate Prisma client:
-```bash
 npx prisma generate
+
+# Postgres (or use your own)
+docker run -d --name simple-asana-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16-alpine
+npx prisma db push      # create tables
+
+npm run dev             # http://localhost:3000
 ```
 
-Start the dev server:
-```bash
-npm run dev
-```
+---
 
-Open http://localhost:3000 in your browser.
+## Deploy (Docker on a VPS)
 
-**Database:** You'll need PostgreSQL running locally or via Docker:
-```bash
-docker run -d \
-  --name simple-asana-db \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
-
-Create the database:
-```bash
-npx prisma db push
-```
-
-### 3. Docker Deployment
-
-Build and run with Docker Compose:
+Full step-by-step is in **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**. Short version, on the server:
 
 ```bash
-docker-compose up --build
+git pull origin main
+docker-compose up -d --build      # builds app, starts Postgres, runs `db push` on startup
+docker-compose logs -f app        # wait for "Ready"
 ```
 
-This will:
-1. Start PostgreSQL
-2. Build the Next.js app
-3. Run Prisma migrations automatically
-4. Start the app on http://localhost:3000
+The Dockerfile is multi-stage and tuned for small VPS instances (raised Node heap, lint/type-check skipped in the image build, OpenSSL installed for Prisma on Alpine, `prisma db push` on container start).
 
-### 4. Production Deployment
+### Seed the team roster (one-time)
 
-Set all environment variables in your production environment (AWS, Azure, GCP, etc.).
+After the first deploy, create the 10 team accounts:
 
-Build for production:
 ```bash
-npm run build
-npm start
+curl -s -X POST http://localhost:3000/api/admin/seed-users \
+  -H "x-seed-secret: <SEED_SECRET>"
 ```
 
-Or use the Docker image:
+Creates (all `@balidoc.com`, default password **`Balidoc2026!`**):
+`sidney` (**ADMIN**), `asima`, `adel`, `ani`, `cindy`, `drbintang`, `drkarina`, `drmona`, `bart`, `meilinda`.
+The seed is idempotent and never overwrites an existing password.
+
+### Fresh start (wipe all data)
+
 ```bash
-docker build -t simple-asana .
-docker run -p 3000:3000 \
-  -e DATABASE_URL="postgresql://..." \
-  -e NEXTAUTH_SECRET="..." \
-  simple-asana
+docker-compose down -v      # ⚠️ deletes the DB volume — all projects/tasks/accounts
+docker-compose up -d --build
+# then re-run the seed
 ```
 
-## Features
+---
 
-✅ **Google OAuth Login** — Domain-restricted sign-in  
-✅ **Kanban Board** — Drag-and-drop task management  
-✅ **PHI Encryption** — All sensitive data encrypted at rest (AES-256-GCM)  
-✅ **Audit Log** — Complete activity trail for compliance  
-✅ **Comments** — Team discussion on tasks (encrypted)  
-✅ **File Attachments** — Secure storage in Google Drive  
-✅ **Session Timeout** — 30-minute auto-logout with warning  
-✅ **Role-Based Access** — Admin and Member roles  
-✅ **HIPAA-Ready** — Encryption, audit logging, access control  
+## Key API routes
 
-## Architecture
+- `POST /api/auth/register` — self-register (email/password, domain-checked)
+- `GET /api/users` — team roster (for assignment dropdowns)
+- `POST /api/admin/seed-users` — one-time roster seed (secret-guarded)
+- `GET/POST /api/projects` — list (admin=all, worker=assigned) / create (admin only)
+- `GET/PATCH/DELETE /api/projects/[id]` — admins or members
+- `GET/POST/DELETE /api/projects/[id]/members` — manage who's on a project
+- `POST /api/tasks`, `GET/PATCH/DELETE /api/tasks/[id]` — tasks (PHI encrypted; assignment auto-adds member)
+- `.../comments`, `.../attachments` — encrypted comments, Drive uploads
+- `POST /api/ai/generate-task-with-subtasks` — Smart Discovery synthesis
 
-```
-├── src/
-│   ├── app/                 # Next.js pages & API routes
-│   │   ├── (auth)/login     # Google OAuth page
-│   │   ├── (app)/           # Protected routes
-│   │   │   ├── dashboard    # My tasks
-│   │   │   ├── projects     # Project list & kanban board
-│   │   │   └── admin/       # User mgmt & audit log
-│   │   └── api/             # 15 REST endpoints
-│   ├── components/          # React components
-│   │   ├── board/           # Kanban: KanbanBoard, Column, TaskCard
-│   │   └── tasks/           # TaskDetailPanel, Comments, Attachments
-│   └── lib/                 # Core utilities
-│       ├── auth.ts          # NextAuth config
-│       ├── encryption.ts    # AES-256-GCM encrypt/decrypt
-│       ├── audit.ts         # Audit log helper
-│       ├── drive.ts         # Google Drive API
-│       └── prisma.ts        # DB client singleton
-├── prisma/
-│   └── schema.prisma        # 9 data models
-├── docker-compose.yml       # PostgreSQL + app
-├── Dockerfile               # Multi-stage production build
-└── .env.example             # Environment template
-```
-
-## API Routes
-
-### Projects
-- `GET /api/projects` — List user's projects
-- `POST /api/projects` — Create project (admin)
-- `GET /api/projects/[id]` — Get project details
-- `PATCH /api/projects/[id]` — Update project (admin)
-- `DELETE /api/projects/[id]` — Delete project (admin)
-- `GET /api/projects/[id]/members` — List members
-- `POST /api/projects/[id]/members` — Add member (admin)
-- `DELETE /api/projects/[id]/members?userId=...` — Remove member (admin)
-
-### Tasks (PHI Encrypted)
-- `POST /api/tasks` — Create task
-- `GET /api/tasks/[id]` — Get task (auto-decrypt)
-- `PATCH /api/tasks/[id]` — Update task
-- `DELETE /api/tasks/[id]` — Delete task
-- `GET /api/tasks/[id]/comments` — List comments
-- `POST /api/tasks/[id]/comments` — Add comment (encrypted)
-- `GET /api/tasks/[id]/attachments` — List attachments
-- `POST /api/tasks/[id]/attachments` — Upload file to Drive
-- `DELETE /api/tasks/[id]/attachments?attachmentId=...` — Delete attachment
-
-### Admin
-- `GET /api/admin/users` — List all users
-- `PATCH /api/admin/users` — Change role / deactivate user
-- `GET /api/admin/audit-log` — Paginated audit log
-
-## Security
-
-### Encryption
-All PHI (task titles, descriptions, comments) is encrypted with **AES-256-GCM** before storage.
-
-Encryption happens explicitly in route handlers—no automatic middleware encryption to prevent accidental leaks.
-
-### Audit Log
-Every PHI access and change is logged to an **append-only** audit table.
-
-The database role has `INSERT`-only permissions on `AuditLog`—even if the app is compromised, logs cannot be modified.
-
-### Session Management
-- **30-minute timeout** for HIPAA compliance
-- **Server-side check** on every request (JWT validation)
-- **Client-side warning** at 25 minutes with countdown modal
-- **Activity tracking** resets timeout on user interaction
-
-### Access Control
-- **Domain restriction** — Only users from ALLOWED_EMAIL_DOMAIN can sign in
-- **Project membership** — Users only see projects they're members of
-- **Role-based endpoints** — Admin-only routes check role in JWT
-- **User deactivation** — Admins can deactivate accounts; login is immediately rejected
-
-## Development
-
-### Database Migrations
-
-Create a new migration after schema changes:
-```bash
-npx prisma migrate dev --name descriptive_name
-```
-
-Review and push migrations to production:
-```bash
-npx prisma migrate deploy
-```
-
-View database:
-```bash
-npx prisma studio
-```
-
-### Building
-
-Development build:
-```bash
-npm run dev
-```
-
-Production build:
-```bash
-npm run build
-npm start
-```
-
-Type-check only:
-```bash
-npm run lint
-```
+---
 
 ## Testing
 
-The MVP is feature-complete but not yet tested. Recommended next steps:
+- **[TEST_SPECIFICATION.md](TEST_SPECIFICATION.md)** — full functional/edge/security suite + product-gap analysis
+- **[TEST_ROUND2.md](TEST_ROUND2.md)** — fast verification of the latest fixes/features (good to feed a browser-automation tester)
 
-- [ ] E2E tests (Playwright) for auth, project CRUD, kanban operations
-- [ ] Load test with 14+ concurrent users
-- [ ] HIPAA compliance audit (encryption strength, audit trail retention)
-- [ ] Accessibility audit (WCAG 2.1 AA)
+---
 
-## Known Limitations
+## Before this handles real patient data (pre-production checklist)
 
-- **No real-time updates** — Refresh page to see changes from teammates
-- **Admin UI incomplete** — API routes work; UI pages are placeholders
-- **Single database** — No multi-tenancy
-- **Google Drive only** — File storage tied to Google Drive BAA
-- **Manual time entries** — No automatic time tracking
+This MVP is **not yet production-safe for PHI**. See **[README_HIPAA.md](README_HIPAA.md)** for the full plan. Minimum:
 
-## Roadmap
+- [ ] **HTTPS + a real domain** (currently HTTP only — required for HIPAA)
+- [ ] **Switch to Google Workspace sign-in** (domain-restricted) or add a password-change/reset flow
+- [ ] **Rotate** the service-account key and any secrets shared during setup
+- [ ] **Automated database backups**
+- [ ] Replace the shared default password; enforce per-user credentials
 
-### Phase 2 (Post-MVP)
-- [ ] Finish admin UI (user management, audit log viewer)
-- [ ] Search & filtering
-- [ ] Task templates
-- [ ] Real-time updates (WebSockets or Server-Sent Events)
-- [ ] Email notifications
-- [ ] CSV import/export
+---
 
-### Phase 3
-- [ ] Mobile app (React Native)
-- [ ] Slack/Teams integration
-- [ ] Time tracking
-- [ ] Custom fields
-- [ ] Workflow automation (Zapier, IFTTT)
+## Known limitations (MVP)
 
-## Support
-
-For questions or issues, check the plan file:
-```bash
-cat /home/barthofstee555/.claude/plans/we-want-to-make-valiant-mountain.md
-```
+- HTTP only on staging; no automated backups yet
+- One shared default password for seeded accounts; no password-change UI yet
+- No real-time updates (refresh to see teammates' changes)
+- Dashboard page is a placeholder (Projects page is the main view)
+- Schema synced via `db push` (no migration history)
 
 Built with [Claude Code](https://claude.com/claude-code).
-# simple-asana
