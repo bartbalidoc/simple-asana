@@ -3,11 +3,11 @@ export interface TaskTemplate {
   name: string;
   description: string;
   fields: {
-    title: boolean;
-    description: boolean;
-    priority: boolean;
-    dueDate: boolean;
-    assignee: boolean;
+    title?: boolean;
+    description?: boolean;
+    priority?: boolean;
+    dueDate?: boolean;
+    assignee?: boolean;
     goal?: boolean;
     expectedOutput?: boolean;
     qualityRequirements?: boolean;
@@ -19,6 +19,7 @@ export interface TaskTemplate {
   };
 }
 
+// Priority is enabled on every template so it can always be set on a task.
 export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
   general: {
     id: "general",
@@ -40,6 +41,7 @@ export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
     description: "Structured brief for automation requests to the dev team",
     fields: {
       title: true,
+      priority: true,
       problem: true,
       currentWorkflow: true,
       desiredImprovement: true,
@@ -55,6 +57,7 @@ export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
     description: "Task for creating or improving documentation",
     fields: {
       title: true,
+      priority: true,
       description: true,
       goal: true,
       expectedOutput: true,
@@ -70,6 +73,7 @@ export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
     description: "Task for improving workflows and processes",
     fields: {
       title: true,
+      priority: true,
       problem: true,
       currentWorkflow: true,
       desiredImprovement: true,
@@ -86,6 +90,7 @@ export const TASK_TEMPLATES: Record<string, TaskTemplate> = {
     description: "Task for coordinating team projects and follow-ups",
     fields: {
       title: true,
+      priority: true,
       goal: true,
       expectedOutput: true,
       blockers: true,

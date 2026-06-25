@@ -59,6 +59,12 @@ export default function FeedbackAdminPage() {
     });
   };
 
+  const del = async (id: string) => {
+    if (!confirm("Delete this feedback? This can't be undone.")) return;
+    setItems((prev) => prev.filter((f) => f.id !== id));
+    await fetch(`/api/admin/feedback?id=${id}`, { method: "DELETE" });
+  };
+
   const needsOwner = items.filter((f) => f.status === "NEEDS_OWNER");
 
   return (
@@ -146,17 +152,25 @@ export default function FeedbackAdminPage() {
                     {new Date(f.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <select
-                  value={f.status}
-                  onChange={(e) => setStatus(f.id, e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-xs flex-shrink-0"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <select
+                    value={f.status}
+                    onChange={(e) => setStatus(f.id, e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-xs"
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => del(f.id)}
+                    className="text-xs text-gray-400 hover:text-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}

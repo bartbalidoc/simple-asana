@@ -84,3 +84,38 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+// Delete a feedback item (admin). Use ?id=<feedbackId>.
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    await prisma.feedback.delete({ where: { id } });
+
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: "FEEDBACK_STATUS_CHANGED",
+      resource: "feedback",
+      resourceId: id,
+      metadata: { deleted: true },
+      req,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Feedback not found" }, { status: 404 });
+    }
+    console.error("DELETE /api/admin/feedback error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
