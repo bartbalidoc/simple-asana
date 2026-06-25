@@ -23,8 +23,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Use the real (Neon) database from the .env file, not the throwaway local one.
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres}@db:5432/simplepm
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
