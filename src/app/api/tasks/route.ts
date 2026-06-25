@@ -3,7 +3,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
-import { notifyTaskAssigned } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -102,9 +101,8 @@ export async function POST(req: NextRequest) {
       req,
     });
 
-    // If the task is created already assigned, grant the assignee project access
-    // (mirrors the PATCH path) so the deep link in their email actually opens,
-    // then email them.
+    // If the task is created already assigned, grant the assignee access to the
+    // project so they can see and work on it (mirrors the PATCH path).
     if (task.assigneeId) {
       await prisma.projectMember.upsert({
         where: {
@@ -112,15 +110,6 @@ export async function POST(req: NextRequest) {
         },
         update: {},
         create: { projectId: task.projectId, userId: task.assigneeId },
-      });
-
-      await notifyTaskAssigned({
-        taskId: task.id,
-        projectId: task.projectId,
-        assigneeId: task.assigneeId,
-        actorId: session.user.id,
-        actorName: session.user.name,
-        taskTitle: decrypt(task.titleEnc),
       });
     }
 

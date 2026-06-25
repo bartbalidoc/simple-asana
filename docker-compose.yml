@@ -23,7 +23,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres}@db:5432/simplepm
+      # Use the real (Neon) database from the .env file, not the throwaway local one.
+      DATABASE_URL: ${DATABASE_URL}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -34,17 +35,6 @@ services:
       GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       SEED_SECRET: ${SEED_SECRET}
-      # Email notifications (task/project assignments + @mentions). Set these in
-      # the server .env. If SMTP_USER/SMTP_PASS are empty, emails safely no-op.
-      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      EMAIL_FROM: ${EMAIL_FROM:-}
-      # Deep-link base for emails; falls back to NEXTAUTH_URL when empty.
-      APP_URL: ${APP_URL:-}
-      # Keep "false" — emails carry no PHI. Only "true" on a BAA-covered setup.
-      EMAIL_INCLUDE_PHI: ${EMAIL_INCLUDE_PHI:-false}
     depends_on:
       db:
         condition: service_healthy

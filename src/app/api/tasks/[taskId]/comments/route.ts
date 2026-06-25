@@ -3,7 +3,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
-import { notifyMentions } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
@@ -107,21 +106,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       metadata: { taskId },
       req,
     });
-
-    // Email anyone @mentioned in the comment.
-    const taskForProject = await prisma.task.findUnique({
-      where: { id: taskId },
-      select: { projectId: true },
-    });
-    if (taskForProject?.projectId) {
-      await notifyMentions({
-        taskId,
-        projectId: taskForProject.projectId,
-        authorId: session.user.id,
-        authorName: session.user.name,
-        body: commentBody,
-      });
-    }
 
     const decrypted = {
       ...comment,
