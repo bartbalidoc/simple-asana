@@ -33,7 +33,7 @@ export function TaskCard({ task, onTaskClick }: TaskCardProps) {
       onClick={() => onTaskClick?.(task.id)}
       className="w-full text-left bg-white rounded-lg p-3 shadow-sm hover:shadow-md border border-gray-200 hover:border-red-300 transition"
     >
-      <p className="font-medium text-gray-900 text-sm mb-2 truncate">{title}</p>
+      <p className="font-medium text-gray-900 text-sm mb-2 line-clamp-2 break-words" title={title}>{title}</p>
 
       <div className="flex items-center justify-between gap-2">
         <span

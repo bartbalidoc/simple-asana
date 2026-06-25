@@ -338,14 +338,31 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
       <div className="p-6 border-b sticky top-0 bg-white">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <input
-              type="text"
+            <textarea
+              rows={1}
               value={updates.title !== undefined ? updates.title : task.title}
               onChange={(e) => {
                 setUpdates({ ...updates, title: e.target.value });
                 setHasChanges(true);
               }}
-              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-blue-400 focus:border-red-500 focus:outline-none mb-2 bg-transparent"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
+              ref={(el) => {
+                if (el) {
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-blue-400 focus:border-red-500 focus:outline-none mb-2 bg-transparent resize-none overflow-hidden break-words"
               placeholder="Task title..."
             />
             <p className="text-xs text-gray-500">

@@ -205,7 +205,7 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{t.title}</p>
+                            <p className="font-medium text-gray-900 line-clamp-2 break-words" title={t.title}>{t.title}</p>
                             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                               <span className="bg-gray-100 px-2 py-0.5 rounded">
                                 {t.projectName}
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                 href={`/projects/${p.id}`}
                 className="block bg-white rounded-lg border border-gray-200 hover:border-red-300 hover:shadow-md transition p-5"
               >
-                <h3 className="font-semibold text-gray-900 mb-1">{p.name}</h3>
+                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 break-words" title={p.name}>{p.name}</h3>
                 {p.description && (
                   <p className="text-sm text-gray-500 mb-3 line-clamp-2">{p.description}</p>
                 )}

@@ -156,7 +156,7 @@ export default function ProjectsPage() {
             return (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 break-words" title={project.name}>{project.name}</h3>
                   {project.description && (
                     <p className="text-sm text-gray-600 mb-4">{project.description}</p>
                   )}

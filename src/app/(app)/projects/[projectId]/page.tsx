@@ -207,9 +207,16 @@ export default function ProjectPage() {
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <input
+        <textarea
+          rows={1}
           value={project.name}
           onChange={(e) => setProject({ ...project, name: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
           onBlur={async (e) => {
             const newName = e.target.value.trim();
             if (!newName) return;
@@ -219,7 +226,18 @@ export default function ProjectPage() {
               body: JSON.stringify({ name: newName }),
             });
           }}
-          className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none"
+          ref={(el) => {
+            if (el) {
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }
+          }}
+          onInput={(e) => {
+            const el = e.currentTarget;
+            el.style.height = "auto";
+            el.style.height = `${el.scrollHeight}px`;
+          }}
+          className="flex-1 min-w-0 mr-4 text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none resize-none overflow-hidden break-words"
           aria-label="Project name"
         />
         <div className="flex gap-2">

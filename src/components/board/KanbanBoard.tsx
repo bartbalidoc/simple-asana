@@ -102,7 +102,10 @@ export function KanbanBoard({
                   draggedTask?.id === task.id ? "opacity-50" : ""
                 }`}
               >
-                <p className="font-medium text-gray-900 text-sm mb-2 truncate">
+                <p
+                  className="font-medium text-gray-900 text-sm mb-2 line-clamp-2 break-words"
+                  title={task.title || "Untitled Task"}
+                >
                   {task.title || "Untitled Task"}
                 </p>
 
