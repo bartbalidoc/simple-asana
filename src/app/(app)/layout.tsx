@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { SessionTimeoutWarning } from "@/components/layout/SessionTimeoutWarning";
 import { SignOutButton } from "@/components/layout/SignOutButton";
 import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 export default async function AppLayout({
   children,
@@ -19,6 +20,7 @@ export default async function AppLayout({
   return (
     <>
       <SessionTimeoutWarning />
+      <FeedbackButton />
       <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -54,6 +56,12 @@ export default async function AppLayout({
                 className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
               >
                 Audit Log
+              </a>
+              <a
+                href="/admin/feedback"
+                className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+              >
+                Feedback
               </a>
             </>
           )}

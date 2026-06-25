@@ -24,6 +24,7 @@ model User {
   createdTasks       Task[]          @relation("CreatedBy")
   comments           Comment[]
   auditLogs          AuditLog[]
+  feedback           Feedback[]
 }
 
 enum Role {
@@ -175,4 +176,56 @@ enum AuditAction {
   PROJECT_ARCHIVED
   PROJECT_MEMBER_ADDED
   PROJECT_MEMBER_REMOVED
+  FEEDBACK_SUBMITTED
+  FEEDBACK_STATUS_CHANGED
+}
+
+model Feedback {
+  id             String              @id @default(cuid())
+  rawText        String
+  conversation   String?
+  pageContext    String?
+  url            String?
+
+  title          String?
+  category       FeedbackCategory?
+  complexity     FeedbackComplexity?
+  summary        String?
+  aiProcessed    Boolean             @default(false)
+
+  status         FeedbackStatus      @default(NEW)
+  triageNotes    String?
+  resolvedCommit String?
+  resolvedAt     DateTime?
+
+  submittedBy    User                @relation(fields: [submittedById], references: [id])
+  submittedById  String
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum FeedbackStatus {
+  NEW
+  TRIAGED
+  FIXED
+  NEEDS_OWNER
+  WONT_FIX
+}
+
+enum FeedbackCategory {
+  BUG
+  FEATURE_REQUEST
+  UI_UX
+  PERFORMANCE
+  COPY_TEXT
+  OTHER
+}
+
+enum FeedbackComplexity {
+  SIMPLE
+  COMPLEX
+  UNKNOWN
 }
