@@ -52,5 +52,5 @@ if [ "$code" = "200" ]; then
   echo "✅ Deploy complete — site is up."
 else
   echo "⚠ Site returned $code. Check: ssh $DROPLET 'cd $APP_DIR && docker-compose logs --tail 50 app'"
-  echo "   To roll back the DB: see DEPLOY.md → 'Restore a backup'."
+  echo "   To roll back the DB: see docs/DEPLOY.md → 'Restore a backup'."
 fi

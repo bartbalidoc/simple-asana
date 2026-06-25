@@ -3,7 +3,7 @@
 An internal project-management tool for the BaliDoc team: an admin creates projects and assigns work; workers see and complete their assigned tasks. Built with Next.js 14, Prisma, PostgreSQL, and AES-256-GCM encryption for sensitive fields.
 
 > This README describes the **MVP as currently deployed** (email/password login, staging on a single VPS).
-> For the production, HIPAA-hardened version with Google Workspace sign-in, see **[README_HIPAA.md](README_HIPAA.md)**.
+> For the production, HIPAA-hardened version with Google Workspace sign-in, see **[README_HIPAA.md](docs/README_HIPAA.md)**.
 
 ---
 
@@ -82,7 +82,7 @@ npm run dev             # http://localhost:3000
 
 ## Deploy (Docker on a VPS)
 
-Full step-by-step is in **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**. Short version, on the server:
+Full step-by-step is in **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** (all guides live in **`docs/`**). Day-to-day, deploy from your dev machine with **`./deploy.sh`** — see **[docs/DEPLOY.md](docs/DEPLOY.md)**. Manual version, on the server:
 
 ```bash
 git pull origin main
@@ -131,14 +131,14 @@ docker-compose up -d --build
 
 ## Testing
 
-- **[TEST_SPECIFICATION.md](TEST_SPECIFICATION.md)** — full functional/edge/security suite + product-gap analysis
-- **[TEST_ROUND2.md](TEST_ROUND2.md)** — fast verification of the latest fixes/features (good to feed a browser-automation tester)
+- **[docs/TEST_SPECIFICATION.md](docs/TEST_SPECIFICATION.md)** — full functional/edge/security suite + product-gap analysis
+- **[docs/TEST_ROUND2.md](docs/TEST_ROUND2.md)** — fast verification of the latest fixes/features (good to feed a browser-automation tester)
 
 ---
 
 ## Before this handles real patient data (pre-production checklist)
 
-This MVP is **not yet production-safe for PHI**. See **[README_HIPAA.md](README_HIPAA.md)** for the full plan. Minimum:
+This MVP is **not yet production-safe for PHI**. See **[README_HIPAA.md](docs/README_HIPAA.md)** for the full plan. Minimum:
 
 - [ ] **HTTPS + a real domain** (currently HTTP only — required for HIPAA)
 - [ ] **Switch to Google Workspace sign-in** (domain-restricted) or add a password-change/reset flow
