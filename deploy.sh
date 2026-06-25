@@ -36,10 +36,14 @@ ssh "$DROPLET" "cd $APP_DIR && git pull --ff-only origin main | tail -1"
 echo "4/5  Rebuilding + restarting (this takes a few minutes)..."
 ssh "$DROPLET" "cd $APP_DIR && docker-compose up -d --build" 2>&1 | tail -3
 
-echo "5/5  Verifying..."
-sleep 6
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$URL/login" || echo 000)
-echo "     site /login -> HTTP $code"
+echo "5/5  Verifying (waiting for the app to come back up)..."
+code=000
+for i in $(seq 1 15); do
+  sleep 4
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$URL/login")
+  [ "$code" = "200" ] && break
+done
+echo "     site /login -> HTTP $code (after ~$((i * 4))s)"
 ssh "$DROPLET" 'docker exec simple-asana-db-1 psql -U postgres -d simplepm -t -c \
   "SELECT (SELECT count(*) FROM \"User\") AS users, (SELECT count(*) FROM \"Project\") AS projects;"' \
   | xargs echo "     data: "
