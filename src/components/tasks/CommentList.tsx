@@ -1,11 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { formatDistanceToNow } from "date-fns";
+import { renderRichText } from "@/lib/richText";
+
+interface Member {
+  id: string;
+  name: string;
+  email?: string;
+}
 
 interface CommentListProps {
   taskId: string;
   comments?: Comment[];
+  members?: Member[];
+  onChanged?: () => void;
 }
 
 interface Comment {
@@ -13,6 +23,8 @@ interface Comment {
   bodyEnc?: string;
   body?: string;
   createdAt: string;
+  updatedAt?: string;
+  authorId?: string;
   author: {
     id: string;
     name: string;
@@ -20,9 +32,24 @@ interface Comment {
   };
 }
 
-export function CommentList({ taskId, comments: externalComments }: CommentListProps) {
+export function CommentList({
+  taskId,
+  comments: externalComments,
+  members = [],
+  onChanged,
+}: CommentListProps) {
+  const { data: session } = useSession();
+  const currentUserId = (session?.user as any)?.id as string | undefined;
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
+
   const [comments, setComments] = useState<Comment[]>(externalComments || []);
   const [loading, setLoading] = useState(!externalComments);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const mentionNames = members.map((m) => m.name);
 
   useEffect(() => {
     if (externalComments) {
@@ -48,6 +75,79 @@ export function CommentList({ taskId, comments: externalComments }: CommentListP
     fetchComments();
   }, [taskId, externalComments]);
 
+  const canModerate = (comment: Comment) => {
+    const authorId = comment.authorId || comment.author?.id;
+    return isAdmin || (!!currentUserId && authorId === currentUserId);
+  };
+
+  const wasEdited = (comment: Comment) =>
+    comment.updatedAt &&
+    new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000;
+
+  const startEdit = (comment: Comment) => {
+    setError(null);
+    setEditingId(comment.id);
+    setEditBody(comment.body || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditBody("");
+  };
+
+  const saveEdit = async (commentId: string) => {
+    if (!editBody.trim()) {
+      setError("Comment cannot be empty");
+      return;
+    }
+
+    setBusyId(commentId);
+    setError(null);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: editBody }),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Failed to update comment");
+      }
+      const updated = await response.json();
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, ...updated } : c))
+      );
+      cancelEdit();
+      onChanged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update comment");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!confirm("Delete this comment? This cannot be undone.")) return;
+
+    setBusyId(commentId);
+    setError(null);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Failed to delete comment");
+      }
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      onChanged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete comment");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-sm text-gray-500">Loading comments...</div>;
   }
@@ -58,17 +158,69 @@ export function CommentList({ taskId, comments: externalComments }: CommentListP
 
   return (
     <div className="space-y-4 mb-4">
+      {error && <p className="text-xs text-red-600">{error}</p>}
       {comments.map((comment) => (
-        <div key={comment.id} className="bg-gray-50 rounded p-3">
-          <div className="flex justify-between items-start mb-1">
-            <p className="font-medium text-sm text-gray-900">
+        <div key={comment.id} className="bg-gray-50 rounded p-3 overflow-hidden">
+          <div className="flex justify-between items-start gap-2 mb-1">
+            <p className="font-medium text-sm text-gray-900 min-w-0 break-words">
               {comment.author?.name || "Unknown"}
             </p>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
               {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+              {wasEdited(comment) && " (edited)"}
             </span>
           </div>
-          <p className="text-sm text-gray-700">{comment.body}</p>
+
+          {editingId === comment.id ? (
+            <div className="space-y-2">
+              <textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
+                disabled={busyId === comment.id}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => saveEdit(comment.id)}
+                  disabled={busyId === comment.id || !editBody.trim()}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-xs font-semibold py-1 px-3 rounded transition"
+                >
+                  {busyId === comment.id ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  disabled={busyId === comment.id}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold py-1 px-3 rounded transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                {renderRichText(comment.body || "", mentionNames)}
+              </p>
+              {canModerate(comment) && (
+                <div className="flex gap-3 mt-1.5">
+                  <button
+                    onClick={() => startEdit(comment)}
+                    className="text-xs text-gray-500 hover:text-blue-600 transition"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteComment(comment.id)}
+                    disabled={busyId === comment.id}
+                    className="text-xs text-gray-500 hover:text-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       ))}
     </div>

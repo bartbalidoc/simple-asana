@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { notifyTaskAssigned } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
@@ -193,23 +194,31 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.order !== undefined) updateData.order = body.order;
     if (body.template !== undefined) updateData.template = body.template;
 
-    // Assigning a task to someone grants them access to its project so they
-    // can actually see and work on it.
-    if (body.assigneeId) {
-      const taskForProject = await prisma.task.findUnique({
+    // Track the previous assignee so we only email on an actual change.
+    let previousAssigneeId: string | null = null;
+    let assigneeProjectId: string | null = null;
+    if (body.assigneeId !== undefined) {
+      const existingTask = await prisma.task.findUnique({
         where: { id: taskId },
-        select: { projectId: true },
+        select: { assigneeId: true, projectId: true },
       });
-      if (taskForProject?.projectId) {
+      previousAssigneeId = existingTask?.assigneeId ?? null;
+      assigneeProjectId = existingTask?.projectId ?? null;
+
+      // Assigning a task to someone grants them access to its project so they
+      // can actually see and work on it. We intentionally do NOT also send a
+      // separate "added to a project" email here — the task-assigned email below
+      // already deep-links them into the same project.
+      if (body.assigneeId && assigneeProjectId) {
         await prisma.projectMember.upsert({
           where: {
             projectId_userId: {
-              projectId: taskForProject.projectId,
+              projectId: assigneeProjectId,
               userId: body.assigneeId,
             },
           },
           update: {},
-          create: { projectId: taskForProject.projectId, userId: body.assigneeId },
+          create: { projectId: assigneeProjectId, userId: body.assigneeId },
         });
       }
     }
@@ -234,6 +243,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       metadata: { updated: Object.keys(body) },
       req,
     });
+
+    // Email the new assignee, but only when the assignee actually changed.
+    if (body.assigneeId && body.assigneeId !== previousAssigneeId) {
+      await notifyTaskAssigned({
+        taskId,
+        projectId: assigneeProjectId || task.projectId,
+        assigneeId: body.assigneeId,
+        actorId: session.user.id,
+        actorName: session.user.name,
+        taskTitle: decrypt(task.titleEnc),
+      });
+    }
 
     const decrypted = {
       ...task,

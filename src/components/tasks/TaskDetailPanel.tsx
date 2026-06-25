@@ -29,6 +29,9 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
   const [creatingSubtask, setCreatingSubtask] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
+  // Only people on this task's project can be @mentioned — a mention should
+  // never silently grant a non-member access to PHI on the task.
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -48,6 +51,23 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
           }
         } catch {
           // Non-fatal: assignee dropdown just won't have options
+        }
+
+        // Load just this project's members for the @mention autocomplete.
+        try {
+          if (data.projectId) {
+            const pmRes = await fetch(`/api/projects/${data.projectId}/members`);
+            if (pmRes.ok) {
+              const pm = await pmRes.json();
+              setProjectMembers(
+                (pm || [])
+                  .map((m: any) => m.user)
+                  .filter((u: any) => u && u.id)
+              );
+            }
+          }
+        } catch {
+          // Non-fatal: mention autocomplete just won't have options
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
@@ -747,8 +767,17 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
         {/* Comments */}
         <div>
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Comments</h3>
-          <CommentList taskId={taskId} comments={task.comments} />
-          <CommentForm taskId={taskId} onCommentAdded={handleCommentAdded} />
+          <CommentList
+            taskId={taskId}
+            comments={task.comments}
+            members={projectMembers}
+            onChanged={handleCommentAdded}
+          />
+          <CommentForm
+            taskId={taskId}
+            members={projectMembers}
+            onCommentAdded={handleCommentAdded}
+          />
         </div>
 
         {/* Actions */}

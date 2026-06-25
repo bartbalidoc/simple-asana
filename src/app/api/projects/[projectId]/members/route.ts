@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
+import { notifyProjectMemberAdded } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
@@ -83,6 +84,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       resourceId: member.id,
       metadata: { projectId, userId: user.id },
       req,
+    });
+
+    await notifyProjectMemberAdded({
+      projectId,
+      userId: user.id,
+      actorId: session.user.id,
+      actorName: session.user.name,
     });
 
     return NextResponse.json(member, { status: 201 });
