@@ -17,6 +17,8 @@ const TEAM = [
   { name: "Dr Mona", email: "drmona@balidoc.com", role: "MEMBER" as const },
   { name: "Bart", email: "bart@balidoc.com", role: "MEMBER" as const },
   { name: "Meilinda", email: "meilinda@balidoc.com", role: "MEMBER" as const },
+  { name: "Fafa", email: "fafa@balidoc.com", role: "MEMBER" as const },
+  { name: "Development", email: "development@balidoc.com", role: "MEMBER" as const },
 ];
 
 export async function POST(req: NextRequest) {

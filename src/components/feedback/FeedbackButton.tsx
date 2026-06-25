@@ -21,7 +21,6 @@ interface Structured {
 // depends on the AI succeeding.
 export function FeedbackButton() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -33,7 +32,8 @@ export function FeedbackButton() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isAdmin) return null;
+  // Available to any signed-in user (the app layout already requires auth).
+  if (!session?.user) return null;
 
   const reset = () => {
     setMessages([]);
