@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  // nodemailer does dynamic requires — keep it external so it's required from
+  // node_modules at runtime (and traced into the standalone output) instead of
+  // being bundled (which breaks its transport loading).
+  experimental: {
+    serverComponentsExternalPackages: ["nodemailer"],
+  },
   // Linting and type-checking run in CI / locally, not in the memory-constrained
   // Docker production build. This keeps `next build` from OOMing on small VPS instances.
   eslint: {
