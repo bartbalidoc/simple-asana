@@ -3,7 +3,8 @@
 An internal project-management tool for the BaliDoc team: an admin creates projects and assigns work; workers see and complete their assigned tasks. Built with Next.js 14, Prisma, PostgreSQL, and AES-256-GCM encryption for sensitive fields.
 
 > This README describes the **MVP as currently deployed** (email/password login, staging on a single VPS).
-> For the production, HIPAA-hardened version with Google Workspace sign-in, see **[README_HIPAA.md](docs/README_HIPAA.md)**.
+> For a plain-English picture of **how the app works today + exactly what it needs to be HIPAA-compliant**, see **[docs/STATUS_AND_HIPAA.md](docs/STATUS_AND_HIPAA.md)**.
+> For the production hardening steps (Google Workspace sign-in, TLS), see **[README_HIPAA.md](docs/README_HIPAA.md)**.
 
 ---
 
