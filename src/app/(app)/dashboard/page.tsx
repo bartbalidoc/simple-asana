@@ -138,10 +138,10 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Assigned to me" value={active} accent="text-gray-900" />
-        <StatCard label="Overdue" value={overdue} accent="text-red-600" />
-        <StatCard label="Due today" value={dueToday} accent="text-amber-600" />
-        <StatCard label="Completed" value={done} accent="text-green-600" />
+        <StatCard label="Assigned to me" value={active} icon="📌" tint="bg-gray-100" accent="text-gray-900" />
+        <StatCard label="Overdue" value={overdue} icon="⚠" tint="bg-red-50" accent="text-red-600" />
+        <StatCard label="Due today" value={dueToday} icon="📅" tint="bg-amber-50" accent="text-amber-600" />
+        <StatCard label="Completed" value={done} icon="✓" tint="bg-green-50" accent="text-green-600" />
       </div>
 
       {/* View toggle */}
@@ -279,11 +279,28 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: number; accent: string }) {
+function StatCard({
+  label,
+  value,
+  accent,
+  icon,
+  tint,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+  icon: string;
+  tint: string;
+}) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className={`text-3xl font-bold ${accent}`}>{value}</div>
-      <div className="text-xs text-gray-500 mt-1">{label}</div>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+      <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-lg ${tint}`}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className={`text-2xl font-bold leading-tight ${accent}`}>{value}</div>
+        <div className="text-xs text-gray-500 truncate">{label}</div>
+      </div>
     </div>
   );
 }

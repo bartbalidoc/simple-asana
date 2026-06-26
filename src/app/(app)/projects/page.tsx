@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PlusIcon, TrashIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/Toast";
 
 interface Project {
   id: string;
@@ -16,6 +17,7 @@ interface Project {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
+  const toast = useToast();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,8 +66,10 @@ export default function ProjectsPage() {
       setNewProject({ name: "", description: "" });
       setShowForm(false);
       await fetchProjects();
+      toast("Project created");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
+      toast("Couldn't create project", "error");
     } finally {
       setCreating(false);
     }
@@ -84,11 +88,15 @@ export default function ProjectsPage() {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Failed to delete project");
+      if (!response.ok) {
+        const d = await response.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to delete project");
+      }
 
       await fetchProjects();
+      toast("Project deleted");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete project");
+      toast(err instanceof Error ? err.message : "Failed to delete project", "error");
     }
   };
 

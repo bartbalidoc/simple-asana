@@ -62,14 +62,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-rose-500 via-red-600 to-red-800 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <BaliDocLogo size={56} showText showTagline />
-          <p className="text-center text-gray-500 text-sm mt-4">
-            Project & Task Hub
+    <div className="min-h-screen flex">
+      {/* Brand panel (large screens) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-rose-500 via-red-600 to-red-800 text-white p-12 flex-col justify-between">
+        <BaliDocLogo size={44} showText light />
+        <div>
+          <h1 className="text-4xl font-bold leading-tight">
+            Your team&apos;s work,
+            <br /> beautifully organized.
+          </h1>
+          <p className="mt-4 text-white/80 max-w-md">
+            Projects, tasks and subtasks in one secure hub — built for the BaliDoc team.
           </p>
+          <ul className="mt-8 space-y-3 text-white/90">
+            <li className="flex items-center gap-2">✓ A board for every project</li>
+            <li className="flex items-center gap-2">✓ Assign work in one click</li>
+            <li className="flex items-center gap-2">✓ Encrypted &amp; audit-logged</li>
+          </ul>
         </div>
+        <p className="text-white/60 text-xs tracking-[0.18em]">YOUR HEALTH · OUR PRIORITY</p>
+      </div>
+
+      {/* Form panel */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden flex flex-col items-center mb-6">
+            <BaliDocLogo size={52} showText showTagline />
+          </div>
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">
+              {mode === "login" ? "Welcome back" : "Create your account"}
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">
+              {mode === "login"
+                ? "Sign in to your BaliDoc workspace."
+                : "Join your team's BaliDoc workspace."}
+            </p>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
@@ -194,6 +222,8 @@ export default function LoginPage() {
             </button>
           </>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

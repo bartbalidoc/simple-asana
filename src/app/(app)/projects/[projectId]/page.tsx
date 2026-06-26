@@ -7,6 +7,7 @@ import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { SmartTaskDiscovery } from "@/components/tasks/SmartTaskDiscovery";
 import { Button } from "@/components/ui/Button";
 import { PlusIcon, SparklesIcon, UsersIcon, TrashIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/Toast";
 
 interface Project {
   id: string;
@@ -19,9 +20,12 @@ interface Project {
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.projectId as string;
+  const toast = useToast();
 
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
 
   // Open a specific task when linked from the dashboard (?task=<id>)
   useEffect(() => {
@@ -154,6 +158,24 @@ export default function ProjectPage() {
     } catch (err) {
       // Use formError so a creation failure doesn't replace the whole page
       setFormError(err instanceof Error ? err.message : "Failed to create task");
+    }
+  };
+
+  const handleCreateTaskInColumn = async (columnId: string, title: string) => {
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, title, columnId }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to create task");
+      }
+      await fetchProject();
+      toast("Task added");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to add task", "error");
     }
   };
 
@@ -407,13 +429,64 @@ export default function ProjectPage() {
         />
       )}
 
+      {/* Search + assignee filter */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            🔍
+          </span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tasks…"
+            className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-red-500"
+          />
+        </div>
+        <select
+          value={assigneeFilter}
+          onChange={(e) => setAssigneeFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-red-500"
+        >
+          <option value="">Everyone</option>
+          <option value="__unassigned__">Unassigned</option>
+          {(project.members || []).map((m: any) => (
+            <option key={m.user?.id} value={m.user?.id}>
+              {m.user?.name}
+            </option>
+          ))}
+        </select>
+        {(search || assigneeFilter) && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setAssigneeFilter("");
+            }}
+            className="text-sm text-gray-500 hover:text-red-600"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {project.columns.length > 0 ? (
         <KanbanBoard
           columns={project.columns}
-          tasks={project.tasks}
+          tasks={(project.tasks || []).filter((t: any) => {
+            const matchesSearch =
+              !search ||
+              (t.title || "").toLowerCase().includes(search.toLowerCase());
+            const matchesAssignee =
+              !assigneeFilter ||
+              (assigneeFilter === "__unassigned__"
+                ? !t.assigneeId
+                : t.assigneeId === assigneeFilter);
+            return matchesSearch && matchesAssignee;
+          })}
           projectId={projectId}
           onTaskUpdate={handleTaskUpdate}
           onTaskClick={setSelectedTaskId}
+          onCreateTask={handleCreateTaskInColumn}
         />
       ) : (
         <div className="bg-white rounded-lg shadow p-6 text-center">

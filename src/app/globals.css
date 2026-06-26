@@ -13,3 +13,8 @@ body {
     Ubuntu, Cantarell, sans-serif;
   background-color: #f8f9fa;
 }
+
+@keyframes slidein {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

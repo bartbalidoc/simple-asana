@@ -13,6 +13,7 @@ import { AttachmentList } from "./AttachmentList";
 import { DistributeControl } from "./DistributeControl";
 import { Button } from "@/components/ui/Button";
 import { TrashIcon, GripIcon, PlusIcon, CloseIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/Toast";
 import { TASK_TEMPLATES } from "@/lib/taskTemplates";
 
 interface Subtask {
@@ -33,6 +34,7 @@ interface TaskDetailPanelProps {
 }
 
 export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: TaskDetailPanelProps) {
+  const toast = useToast();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,8 +160,10 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       setUpdates({});
       setHasChanges(false);
       onTaskUpdated?.(); // refresh the board so card priority/title update immediately
+      toast("Changes saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save task");
+      toast("Couldn't save changes", "error");
     }
   };
 
@@ -357,9 +361,11 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
       if (!response.ok) throw new Error("Failed to delete task");
 
+      toast("Task deleted");
       onClose?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete task");
+      toast("Couldn't delete task", "error");
     }
   };
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
-import { TrashIcon, BoardIcon, ChevronRightIcon } from "@/components/ui/icons";
+import { TrashIcon, BoardIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/Toast";
 
 interface StagedTask {
   id: string;
@@ -46,6 +47,7 @@ function CopyToProject({
   people: Person[];
   onDone: () => void;
 }) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [destId, setDestId] = useState("");
   const [newName, setNewName] = useState("");
@@ -79,6 +81,9 @@ function CopyToProject({
       setOpen(false);
       onDone();
       setMsg(`Copied to ${data.destProjectName}`);
+      toast(
+        `Copied to ${data.destProjectName}${data.aiGenerated ? " (AI-generated)" : ""}`
+      );
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Failed to copy");
     } finally {
@@ -155,6 +160,7 @@ function CopyToProject({
 }
 
 export default function StagingPage() {
+  const toast = useToast();
   const [projects, setProjects] = useState<StagedProject[]>([]);
   const [destinations, setDestinations] = useState<Dest[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
@@ -197,8 +203,24 @@ export default function StagingPage() {
         throw new Error(d.error || "Failed to delete");
       }
       load();
+      toast("Staged project deleted");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete");
+      toast(err instanceof Error ? err.message : "Failed to delete", "error");
+    }
+  };
+
+  const handleDeleteTask = async (id: string, title: string) => {
+    if (!confirm(`Delete the staged task "${title}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to delete");
+      }
+      load();
+      toast("Task deleted");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to delete", "error");
     }
   };
 
@@ -307,6 +329,14 @@ export default function StagingPage() {
                           people={people}
                           onDone={load}
                         />
+
+                        <button
+                          onClick={() => handleDeleteTask(t.id, t.title)}
+                          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-md px-2 py-1 transition"
+                          title="Delete this staged task"
+                        >
+                          <TrashIcon size={13} /> Delete
+                        </button>
                       </div>
                     );
                   })}

@@ -7,6 +7,7 @@ import {
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd";
+import { PlusIcon } from "@/components/ui/icons";
 
 interface Column {
   id: string;
@@ -34,6 +35,7 @@ interface KanbanBoardProps {
   projectId: string;
   onTaskUpdate?: (taskId: string, updates: any) => Promise<void>;
   onTaskClick?: (taskId: string) => void;
+  onCreateTask?: (columnId: string, title: string) => Promise<void> | void;
 }
 
 const accent = (name: string) => {
@@ -69,10 +71,28 @@ export function KanbanBoard({
   tasks,
   onTaskUpdate,
   onTaskClick,
+  onCreateTask,
 }: KanbanBoardProps) {
   // Local copy so drag reorders feel instant; re-sync when the server data changes.
   const [items, setItems] = useState<Task[]>(tasks);
   useEffect(() => setItems(tasks), [tasks]);
+
+  // In-column quick-add
+  const [addCol, setAddCol] = useState<string | null>(null);
+  const [addText, setAddText] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const submitAdd = async (columnId: string) => {
+    const title = addText.trim();
+    if (!title) return;
+    setAdding(true);
+    try {
+      await onCreateTask?.(columnId, title);
+      setAddText(""); // keep the composer open for rapid entry
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const byColumn = (columnId: string) =>
     items
@@ -231,13 +251,69 @@ export function KanbanBoard({
                     })}
                     {provided.placeholder}
                     {list.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="text-xs text-gray-300 text-center py-8 border border-dashed border-gray-200 rounded-xl">
-                        Drop tasks here
+                      <div className="text-xs text-gray-300 text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                        No tasks yet
                       </div>
                     )}
                   </div>
                 )}
               </Droppable>
+
+              {/* In-column quick add (the natural Asana way to add tasks) */}
+              {onCreateTask && (
+                <div className="px-3 pb-3">
+                  {addCol === column.id ? (
+                    <div className="bg-white rounded-xl border border-red-200 p-2 shadow-sm">
+                      <textarea
+                        autoFocus
+                        rows={2}
+                        value={addText}
+                        onChange={(e) => setAddText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            submitAdd(column.id);
+                          }
+                          if (e.key === "Escape") {
+                            setAddCol(null);
+                            setAddText("");
+                          }
+                        }}
+                        placeholder="Task title — Enter to add"
+                        className="w-full text-sm resize-none border-0 focus:outline-none placeholder:text-gray-400"
+                      />
+                      <div className="flex items-center gap-2 mt-1">
+                        <button
+                          onClick={() => submitAdd(column.id)}
+                          disabled={adding || !addText.trim()}
+                          className="text-xs bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-md px-2.5 py-1 font-medium"
+                        >
+                          Add task
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAddCol(null);
+                            setAddText("");
+                          }}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setAddCol(column.id);
+                        setAddText("");
+                      }}
+                      className="w-full flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 hover:bg-white rounded-lg px-2 py-1.5 transition"
+                    >
+                      <PlusIcon size={15} /> Add task
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
