@@ -5,6 +5,7 @@ import { SessionTimeoutWarning } from "@/components/layout/SessionTimeoutWarning
 import { SignOutButton } from "@/components/layout/SignOutButton";
 import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
+import { ProjectSidebarList } from "@/components/layout/ProjectSidebarList";
 
 export default async function AppLayout({
   children,
@@ -40,11 +41,27 @@ export default async function AppLayout({
           >
             Projects
           </a>
+          {/* Live, clickable list of the user's projects (Asana-style left nav). */}
+          <ProjectSidebarList />
+          {session?.user?.role === "ADMIN" && (
+            <a
+              href="/projects"
+              className="block py-1.5 pl-7 pr-4 text-xs text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-700 transition"
+            >
+              + New project
+            </a>
+          )}
           {session?.user?.role === "ADMIN" && (
             <>
               <div className="px-4 pt-4 pb-1 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
                 Admin
               </div>
+              <a
+                href="/admin/staging"
+                className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"
+              >
+                Staging (Asana import)
+              </a>
               <a
                 href="/admin/users"
                 className="block py-2 px-4 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 font-medium transition"

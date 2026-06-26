@@ -11,15 +11,19 @@ interface Subtask {
   title: string;
   status: string;
   order?: number;
+  assigneeId?: string | null;
 }
 
 interface TaskDetailPanelProps {
   taskId: string;
   onClose?: () => void;
   onTaskUpdated?: () => void;
+  // Open another task (e.g. a subtask, or this task's parent) in the panel.
+  // Enables Asana-style drill-down into nested subtasks.
+  onOpenTask?: (taskId: string) => void;
 }
 
-export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPanelProps) {
+export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: TaskDetailPanelProps) {
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -252,6 +256,29 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
     }
   };
 
+  const handleSubtaskAssignee = async (
+    subtaskId: string,
+    assigneeId: string | null
+  ) => {
+    // Optimistic update
+    setTask({
+      ...task,
+      subtasks: task.subtasks.map((s: Subtask) =>
+        s.id === subtaskId ? { ...s, assigneeId } : s
+      ),
+    });
+    try {
+      const response = await fetch(`/api/tasks/${subtaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeId }),
+      });
+      if (!response.ok) throw new Error("Failed to assign subtask");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to assign subtask");
+    }
+  };
+
   const handleMoveSubtask = async (index: number, direction: -1 | 1) => {
     const list = [...(task.subtasks || [])];
     const target = index + direction;
@@ -336,6 +363,15 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
   return (
     <div className="fixed right-0 top-0 h-screen w-96 bg-white shadow-lg overflow-y-auto">
       <div className="p-6 border-b sticky top-0 bg-white">
+        {task.parentTaskId && onOpenTask && (
+          <button
+            onClick={() => onOpenTask(task.parentTaskId)}
+            className="text-xs text-gray-500 hover:text-red-600 mb-2 flex items-center gap-1"
+            title="Back to parent task"
+          >
+            ↑ Back to parent task
+          </button>
+        )}
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <textarea
@@ -709,23 +745,36 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated }: TaskDetailPa
                     }
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                   />
-                  <input
-                    type="text"
-                    defaultValue={subtask.title}
-                    onBlur={(e) => {
-                      if (e.target.value.trim() !== subtask.title) {
-                        handleUpdateSubtaskTitle(subtask.id, e.target.value);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                    }}
-                    className={`flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-red-500 focus:outline-none px-1 ${
+                  {/* Click the title to open the subtask in its own panel (Asana-style
+                      drill-down — a subtask can itself have subtasks + an assignee). */}
+                  <button
+                    onClick={() => onOpenTask?.(subtask.id)}
+                    title="Open subtask"
+                    className={`flex-1 text-left truncate px-1 hover:text-red-600 hover:underline ${
                       subtask.status === "DONE"
                         ? "line-through text-gray-400"
                         : "text-gray-700"
                     }`}
-                  />
+                  >
+                    {subtask.title}
+                  </button>
+                  {/* Inline assignee — hand the subtask to a specific person. */}
+                  <select
+                    value={subtask.assigneeId || ""}
+                    onChange={(e) =>
+                      handleSubtaskAssignee(subtask.id, e.target.value || null)
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    title="Assign subtask"
+                    className="max-w-[90px] text-xs bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-600 focus:outline-none focus:border-red-500"
+                  >
+                    <option value="">— </option>
+                    {members.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                   <div className="flex flex-col leading-none">
                     <button
                       onClick={() => handleMoveSubtask(index, -1)}

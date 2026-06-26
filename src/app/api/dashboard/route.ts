@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
 
     const [projects, tasks] = await Promise.all([
       prisma.project.findMany({
-        where: isAdmin ? {} : { members: { some: { userId: session.user.id } } },
+        // Exclude hidden staging (Asana import) projects from everyone's dashboard.
+        where: isAdmin
+          ? { isStaging: false }
+          : { isStaging: false, members: { some: { userId: session.user.id } } },
         include: {
           tasks: {
             where: { parentTaskId: null },
@@ -28,7 +31,13 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.task.findMany({
-        where: { assigneeId: session.user.id, parentTaskId: null },
+        // Staged tasks keep their original assignee, so exclude them here or they'd
+        // surface in a worker's "My Tasks" before being distributed.
+        where: {
+          assigneeId: session.user.id,
+          parentTaskId: null,
+          project: { isStaging: false },
+        },
         include: {
           project: { select: { id: true, name: true } },
           subtasks: { select: { status: true } },

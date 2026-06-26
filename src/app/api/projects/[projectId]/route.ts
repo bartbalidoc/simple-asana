@@ -71,6 +71,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // Hidden staging projects (Asana imports) are admin-only.
+    if (project.isStaging && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
     // Decrypt task titles and descriptions
     const decryptedProject = {
       ...project,

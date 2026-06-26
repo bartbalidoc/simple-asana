@@ -420,6 +420,7 @@ export default function ProjectPage() {
             console.log("Task updated, refreshing project");
             fetchProject();
           }}
+          onOpenTask={(id) => setSelectedTaskId(id)}
         />
       )}
     </div>

@@ -37,7 +37,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess =
+      session.user.role === "ADMIN" ||
+      (await checkTaskAccess(taskId, session.user.id));
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -114,7 +116,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess =
+      session.user.role === "ADMIN" ||
+      (await checkTaskAccess(taskId, session.user.id));
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -283,7 +287,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess =
+      session.user.role === "ADMIN" ||
+      (await checkTaskAccess(taskId, session.user.id));
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

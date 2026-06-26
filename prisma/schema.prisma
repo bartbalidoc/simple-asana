@@ -40,6 +40,11 @@ model Project {
   updatedAt   DateTime @updatedAt
   archivedAt  DateTime?
 
+  // Hidden, admin-only "Staging" projects (imported from Asana). Never shown to
+  // workers; surfaced only in the admin Staging view.
+  isStaging   Boolean  @default(false)
+  asanaId     String?  @unique
+
   members     ProjectMember[]
   tasks       Task[]
   columns     Column[]
@@ -86,6 +91,11 @@ model Task {
   updatedAt      DateTime   @updatedAt
   completedAt    DateTime?
 
+  // Asana import + staging-distribution bookkeeping.
+  asanaId          String?   @unique   // source Asana task GID (idempotent import); copies have null
+  distributedAt    DateTime?           // set on a staged task once copied into a real project (drives the color change)
+  originalAssignee String?             // original Asana assignee name/email, kept as text even for non-users; carried onto copies
+
   project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId      String
   column         Column?    @relation(fields: [columnId], references: [id])
@@ -121,6 +131,7 @@ model Comment {
   bodyEnc    String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  asanaId    String?  @unique   // source Asana story GID (idempotent import)
 
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId     String

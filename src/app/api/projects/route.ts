@@ -13,12 +13,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Admins see every project; workers see only the projects they belong to.
+    // Hidden "Staging" projects (Asana imports) are excluded here for everyone —
+    // they appear only in the admin Staging view (GET /api/admin/staging).
     const isAdmin = session.user.role === "ADMIN";
 
     const projects = await prisma.project.findMany({
       where: isAdmin
-        ? {}
+        ? { isStaging: false }
         : {
+            isStaging: false,
             members: {
               some: {
                 userId: session.user.id,
