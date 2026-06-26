@@ -206,9 +206,31 @@ export default function ProjectPage() {
     return <div className="text-gray-600">Project not found.</div>;
   }
 
+  const staged = (project as any).isStaging;
+
   return (
     <div>
-      <div className="mb-6 flex justify-between items-center">
+      {/* Back navigation — always know how to return to the list */}
+      <div className="mb-3">
+        <a
+          href={staged ? "/admin/staging" : "/projects"}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition"
+        >
+          <span className="text-base leading-none">←</span>
+          {staged ? "Back to Staging" : "Back to Projects"}
+        </a>
+      </div>
+
+      {staged && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          📥 <span className="font-medium">Staging (Asana import)</span>
+          <span className="text-amber-700">
+            — imported, admin-only. Open a task to copy it into a real project for someone.
+          </span>
+        </div>
+      )}
+
+      <div className="mb-6 flex justify-between items-center gap-3">
         <textarea
           rows={1}
           value={project.name}

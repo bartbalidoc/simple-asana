@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
+import { TrashIcon, BoardIcon, ChevronRightIcon } from "@/components/ui/icons";
 
 interface StagedTask {
   id: string;
@@ -182,6 +183,25 @@ export default function StagingPage() {
     load();
   }, [load]);
 
+  const handleDeleteProject = async (id: string, name: string) => {
+    if (
+      !confirm(
+        `Delete the staged project "${name}" and everything imported in it? This only removes it from Staging — your real projects are untouched.`
+      )
+    )
+      return;
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to delete");
+      }
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -222,15 +242,22 @@ export default function StagingPage() {
                 >
                   {isOpen ? "▾" : "▸"} {proj.name}
                 </button>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 mr-1">{proj.taskCount} tasks</span>
                   <a
-                    href={`/projects/${proj.id}`}
-                    className="text-xs text-red-600 hover:text-red-700 hover:underline whitespace-nowrap"
+                    href={`/projects/${proj.id}?from=staging`}
+                    className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-700 border border-gray-200 hover:border-red-300 rounded-md px-2 py-1 whitespace-nowrap transition"
                     title="See this project as a To Do / In Progress / Review / Done board"
                   >
-                    Open as board →
+                    <BoardIcon size={13} /> Open as board
                   </a>
-                  <span className="text-xs text-gray-500">{proj.taskCount} tasks</span>
+                  <button
+                    onClick={() => handleDeleteProject(proj.id, proj.name)}
+                    className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-md px-2 py-1 transition"
+                    title="Delete this staged project"
+                  >
+                    <TrashIcon size={13} /> Delete
+                  </button>
                 </div>
               </div>
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { PlusIcon } from "@/components/ui/icons";
+import { PlusIcon, TrashIcon } from "@/components/ui/icons";
 
 interface Project {
   id: string;
@@ -71,8 +71,13 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm("Are you sure you want to delete this project?")) return;
+  const handleDeleteProject = async (projectId: string, name?: string) => {
+    if (
+      !confirm(
+        `Delete "${name || "this project"}" and all of its tasks? This cannot be undone.`
+      )
+    )
+      return;
 
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
@@ -103,37 +108,39 @@ export default function ProjectsPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreateProject} className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+        <form onSubmit={handleCreateProject} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1.5">
               Project Name
             </label>
             <input
               type="text"
               value={newProject.name}
               onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
               placeholder="e.g., Website Redesign"
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1.5">
               Description (optional)
             </label>
             <textarea
               value={newProject.description}
               onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
               rows={3}
             />
           </div>
 
-          {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <Button type="submit" variant="primary" disabled={creating}>
-            {creating ? "Creating…" : "Create Project"}
-          </Button>
+          <div className="pt-1">
+            <Button type="submit" variant="primary" disabled={creating}>
+              {creating ? "Creating…" : "Create Project"}
+            </Button>
+          </div>
         </form>
       )}
 
@@ -165,12 +172,12 @@ export default function ProjectsPage() {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          handleDeleteProject(project.id);
+                          handleDeleteProject(project.id, project.name);
                         }}
-                        className="flex-shrink-0 text-gray-300 hover:text-red-600 text-sm opacity-0 group-hover:opacity-100 transition"
+                        className="flex-shrink-0 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-md px-2 py-1 transition"
                         title="Delete project"
                       >
-                        ✕
+                        <TrashIcon size={13} /> Delete
                       </button>
                     )}
                   </div>

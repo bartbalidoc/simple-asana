@@ -301,6 +301,15 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
     }
   };
 
+  // Esc closes the panel — feels like a proper drawer.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const handleSubtaskDragEnd = async (result: DropResult) => {
     const { source, destination } = result;
     if (!destination || destination.index === source.index) return;
@@ -383,15 +392,23 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const totalSubtasks = (task.subtasks || []).length;
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto">
+    <>
+      {/* Dimmed backdrop — click anywhere to close (feels like a drawer). */}
+      <div
+        className="fixed inset-0 bg-gray-900/20 z-40"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto z-50">
       <div className="p-6 border-b sticky top-0 bg-white">
         {task.parentTaskId && onOpenTask && (
           <button
             onClick={() => onOpenTask(task.parentTaskId)}
-            className="text-xs text-gray-500 hover:text-red-600 mb-2 flex items-center gap-1"
-            title="Back to parent task"
+            className="w-full mb-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-red-50 hover:border-red-200 hover:text-red-700 text-gray-600 text-sm font-medium px-3 py-2 transition"
+            title="Back to the parent task"
           >
-            ↑ Back to parent task
+            <span className="text-base leading-none">←</span>
+            Back to parent task
           </button>
         )}
         <div className="flex items-start justify-between">
@@ -935,6 +952,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

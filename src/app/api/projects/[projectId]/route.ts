@@ -155,21 +155,34 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Only admins delete projects (this cascades to its tasks/columns/members).
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only an admin can delete a project" },
+        { status: 403 }
+      );
+    }
+
     const project = await prisma.project.delete({
       where: { id: projectId },
     });
 
     await writeAuditLog({
       actorId: session.user.id,
-      action: "PROJECT_CREATED",
+      action: "PROJECT_ARCHIVED",
       resource: "project",
       resourceId: projectId,
+      metadata: { name: project.name, deleted: true },
       req,
     });
 
     return NextResponse.json(project);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
     console.error("DELETE /api/projects/[projectId] error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
