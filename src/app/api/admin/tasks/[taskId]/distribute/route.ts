@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
+import { encrypt, decrypt } from "@/lib/encryption";
 import { NextRequest, NextResponse } from "next/server";
 
 // Admin-only: copy a staged task (or subtask) into a real project — an existing
@@ -22,6 +23,65 @@ const STATUS_TO_COLUMN: Record<string, string> = {
   IN_REVIEW: "In Review",
   DONE: "Done",
 };
+
+// Turn a bare subtask title into a fully-formed task (description + subtasks)
+// using the same model the app already uses for Smart Discovery. Returns null
+// if AI isn't configured / fails, so the caller can fall back to a plain copy.
+async function aiExpand(
+  title: string,
+  context: string
+): Promise<{ title: string; description: string; subtasks: string[] } | null> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  try {
+    const prompt = `You are a project manager. A teammate has a short to-do item that needs to become a clear, actionable task for someone to own.
+
+Item: "${title}"${context ? `\nContext from the parent task: ${context}` : ""}
+
+Write:
+1. A clear, outcome-focused title (you may keep it close to the item).
+2. A concise professional description (2-4 sentences) of what needs to be done and what "done" looks like.
+3. 3-6 concrete verb-noun subtasks that break down the work.
+
+Do NOT invent specific dates, names, or facts not implied above.
+Respond ONLY with valid JSON: {"title": "...", "description": "...", "subtasks": ["...", "..."]}`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a task management expert. Output only valid JSON.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 700,
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return null;
+    const parsed = JSON.parse(content);
+    if (!parsed.title) return null;
+    return {
+      title: parsed.title,
+      description: parsed.description || "",
+      subtasks: Array.isArray(parsed.subtasks) ? parsed.subtasks : [],
+    };
+  } catch {
+    return null;
+  }
+}
 
 async function upsertMembership(projectId: string, userId: string | null) {
   if (!userId) return;
@@ -120,6 +180,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     let destProjectId: string | undefined = body?.destProjectId || undefined;
     const assigneeOverride =
       "assigneeId" in (body || {}) ? (body.assigneeId || null) : undefined;
+    const aiGenerate: boolean = !!body?.aiGenerate;
 
     // The source must be a staged task.
     const source = await prisma.task.findUnique({
@@ -184,15 +245,67 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     const columnsByName = new Map(destProject.columns.map((c) => [c.name, c.id]));
     const fallbackColumnId = destProject.columns[0]?.id ?? null;
+    const todoColumnId = columnsByName.get("To Do") ?? fallbackColumnId;
 
-    const newRootId = await copyTaskTree(taskId, {
-      destProjectId,
-      columnsByName,
-      fallbackColumnId,
-      parentTaskId: null, // a distributed subtask becomes a top-level task
-      adminId: session.user.id,
-      assigneeOverride,
-    });
+    let newRootId: string | null;
+    let usedAi = false;
+
+    if (aiGenerate) {
+      // Expand the (sub)task title into a full task via AI, then create it fresh.
+      const plainTitle = decrypt(source.titleEnc);
+      const context = source.descriptionEnc ? decrypt(source.descriptionEnc) : "";
+      const expanded = await aiExpand(plainTitle, context);
+
+      if (expanded) {
+        usedAi = true;
+        const created = await prisma.task.create({
+          data: {
+            titleEnc: encrypt(expanded.title || plainTitle),
+            descriptionEnc: expanded.description ? encrypt(expanded.description) : null,
+            status: "TODO",
+            projectId: destProjectId,
+            columnId: todoColumnId,
+            assigneeId: assigneeOverride !== undefined ? assigneeOverride : source.assigneeId,
+            createdById: session.user.id,
+            originalAssignee: source.originalAssignee,
+            subtasks: {
+              create: expanded.subtasks.map((st, i) => ({
+                titleEnc: encrypt(st),
+                status: "TODO" as const,
+                order: i,
+                projectId: destProjectId,
+                columnId: todoColumnId,
+                createdById: session.user.id,
+              })),
+            },
+          },
+        });
+        newRootId = created.id;
+        await upsertMembership(
+          destProjectId,
+          assigneeOverride !== undefined ? assigneeOverride : source.assigneeId
+        );
+      } else {
+        // AI unavailable — fall back to a plain deep copy so nothing is lost.
+        newRootId = await copyTaskTree(taskId, {
+          destProjectId,
+          columnsByName,
+          fallbackColumnId,
+          parentTaskId: null,
+          adminId: session.user.id,
+          assigneeOverride,
+        });
+      }
+    } else {
+      newRootId = await copyTaskTree(taskId, {
+        destProjectId,
+        columnsByName,
+        fallbackColumnId,
+        parentTaskId: null, // a distributed subtask becomes a top-level task
+        adminId: session.user.id,
+        assigneeOverride,
+      });
+    }
 
     // Mark the staged original as distributed (keeps it, recolors it).
     await prisma.task.update({
@@ -214,6 +327,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       newTaskId: newRootId,
       destProjectId,
       destProjectName: destProject.name,
+      aiGenerated: usedAi,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Internal server error";

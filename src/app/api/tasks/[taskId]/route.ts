@@ -50,6 +50,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       include: {
         assignee: true,
         createdBy: true,
+        project: { select: { isStaging: true, name: true } },
         comments: {
           include: { author: true },
         },

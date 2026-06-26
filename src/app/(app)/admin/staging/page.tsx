@@ -213,17 +213,26 @@ export default function StagingPage() {
           const isOpen = expanded[proj.id] ?? true;
           return (
             <div key={proj.id} className="bg-white rounded-lg shadow">
-              <button
-                onClick={() =>
-                  setExpanded((e) => ({ ...e, [proj.id]: !isOpen }))
-                }
-                className="w-full flex items-center justify-between px-4 py-3 text-left"
-              >
-                <span className="font-semibold text-gray-900">
+              <div className="flex items-center justify-between px-4 py-3">
+                <button
+                  onClick={() =>
+                    setExpanded((e) => ({ ...e, [proj.id]: !isOpen }))
+                  }
+                  className="flex-1 flex items-center gap-2 text-left font-semibold text-gray-900"
+                >
                   {isOpen ? "▾" : "▸"} {proj.name}
-                </span>
-                <span className="text-xs text-gray-500">{proj.taskCount} tasks</span>
-              </button>
+                </button>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`/projects/${proj.id}`}
+                    className="text-xs text-red-600 hover:text-red-700 hover:underline whitespace-nowrap"
+                    title="See this project as a To Do / In Progress / Review / Done board"
+                  >
+                    Open as board →
+                  </a>
+                  <span className="text-xs text-gray-500">{proj.taskCount} tasks</span>
+                </div>
+              </div>
 
               {isOpen && (
                 <div className="border-t border-gray-100 divide-y divide-gray-50">

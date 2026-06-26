@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CommentList } from "./CommentList";
 import { CommentForm } from "./CommentForm";
 import { AttachmentList } from "./AttachmentList";
+import { DistributeControl } from "./DistributeControl";
 import { TASK_TEMPLATES } from "@/lib/taskTemplates";
 
 interface Subtask {
@@ -36,6 +37,9 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   // Only people on this task's project can be @mentioned — a mention should
   // never silently grant a non-member access to PHI on the task.
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  // Real (non-staging) projects to distribute staged tasks into.
+  const [destProjects, setDestProjects] = useState<any[]>([]);
+  const isStaged = !!task?.project?.isStaging;
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -55,6 +59,16 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           }
         } catch {
           // Non-fatal: assignee dropdown just won't have options
+        }
+
+        // For staged (Asana import) tasks, load real projects to distribute into.
+        try {
+          if (data.project?.isStaging) {
+            const pr = await fetch(`/api/projects`);
+            if (pr.ok) setDestProjects(await pr.json());
+          }
+        } catch {
+          // Non-fatal: distribute dropdown just won't have options
         }
 
         // Load just this project's members for the @mention autocomplete.
@@ -424,6 +438,28 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       </div>
 
       <div className="p-6 space-y-6">
+        {/* Staged (Asana import) — distribute this task into a real project */}
+        {isStaged && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+            <div className="text-xs font-semibold text-amber-800">
+              📥 Staged from Asana
+              {task.originalAssignee && (
+                <span className="font-normal text-amber-700">
+                  {" "}· original owner: {task.originalAssignee}
+                </span>
+              )}
+            </div>
+            <DistributeControl
+              taskId={taskId}
+              destinations={destProjects}
+              people={members}
+              defaultAi={false}
+              buttonLabel="Copy this task to a project →"
+              onDone={onTaskUpdated}
+            />
+          </div>
+        )}
+
         {/* Template Selector */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -733,10 +769,8 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           {task.subtasks && task.subtasks.length > 0 && (
             <div className="space-y-2 mb-3">
               {task.subtasks.map((subtask: Subtask, index: number) => (
-                <div
-                  key={subtask.id}
-                  className="flex items-center gap-1 p-2 bg-gray-50 rounded text-sm hover:bg-gray-100 transition"
-                >
+                <div key={subtask.id} className="bg-gray-50 rounded">
+                <div className="flex items-center gap-1 p-2 text-sm hover:bg-gray-100 transition rounded">
                   <input
                     type="checkbox"
                     checked={subtask.status === "DONE"}
@@ -800,6 +834,18 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                   >
                     ✕
                   </button>
+                </div>
+                {isStaged && (
+                  <div className="px-2 pb-2">
+                    <DistributeControl
+                      taskId={subtask.id}
+                      destinations={destProjects}
+                      people={members}
+                      defaultAi={true}
+                      buttonLabel="✨ Make into task for someone"
+                    />
+                  </div>
+                )}
                 </div>
               ))}
             </div>
