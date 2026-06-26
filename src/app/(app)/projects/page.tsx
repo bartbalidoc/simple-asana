@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { PlusIcon } from "@/components/ui/icons";
 
 interface Project {
   id: string;
@@ -90,12 +92,13 @@ export default function ProjectsPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
         {isAdmin && (
-          <button
+          <Button
             onClick={() => setShowForm(!showForm)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            variant={showForm ? "subtle" : "primary"}
+            leftIcon={showForm ? undefined : <PlusIcon size={16} />}
           >
             {showForm ? "Cancel" : "New Project"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -128,13 +131,9 @@ export default function ProjectsPage() {
 
           {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={creating}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed"
-          >
-            {creating ? "Creating..." : "Create Project"}
-          </button>
+          <Button type="submit" variant="primary" disabled={creating}>
+            {creating ? "Creating…" : "Create Project"}
+          </Button>
         </form>
       )}
 

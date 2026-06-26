@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd";
 import { CommentList } from "./CommentList";
 import { CommentForm } from "./CommentForm";
 import { AttachmentList } from "./AttachmentList";
 import { DistributeControl } from "./DistributeControl";
+import { Button } from "@/components/ui/Button";
+import { TrashIcon, GripIcon, PlusIcon, CloseIcon } from "@/components/ui/icons";
 import { TASK_TEMPLATES } from "@/lib/taskTemplates";
 
 interface Subtask {
@@ -293,14 +301,14 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
     }
   };
 
-  const handleMoveSubtask = async (index: number, direction: -1 | 1) => {
-    const list = [...(task.subtasks || [])];
-    const target = index + direction;
-    if (target < 0 || target >= list.length) return;
+  const handleSubtaskDragEnd = async (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination || destination.index === source.index) return;
 
-    // Swap positions locally, then persist the new order for both
-    [list[index], list[target]] = [list[target], list[index]];
-    setTask({ ...task, subtasks: list });
+    const list = [...(task.subtasks || [])];
+    const [moved] = list.splice(source.index, 1);
+    list.splice(destination.index, 0, moved);
+    setTask({ ...task, subtasks: list }); // optimistic
 
     try {
       await Promise.all(
@@ -348,7 +356,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (loading) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 p-6 flex items-center justify-center">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-2" />
           <p className="text-gray-600">Loading...</p>
@@ -359,7 +367,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (error) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 p-6">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-6">
         <div className="text-red-600 mb-4">{error}</div>
         <button onClick={onClose} className="text-blue-600 hover:underline">
           Close
@@ -375,7 +383,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const totalSubtasks = (task.subtasks || []).length;
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto">
+    <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto">
       <div className="p-6 border-b sticky top-0 bg-white">
         {task.parentTaskId && onOpenTask && (
           <button
@@ -419,19 +427,22 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
               Created by {task.createdBy?.name || "Unknown"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
               onClick={handleDeleteTask}
-              className="text-red-400 hover:text-red-600 text-sm px-2 py-1"
+              variant="danger"
+              size="sm"
+              leftIcon={<TrashIcon size={14} />}
               title="Delete task"
             >
-              🗑️ Delete
-            </button>
+              Delete
+            </Button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+              title="Close"
             >
-              ×
+              <CloseIcon size={20} />
             </button>
           </div>
         </div>
@@ -767,88 +778,101 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
 
           {task.subtasks && task.subtasks.length > 0 && (
-            <div className="space-y-2 mb-3">
-              {task.subtasks.map((subtask: Subtask, index: number) => (
-                <div key={subtask.id} className="bg-gray-50 rounded">
-                <div className="flex items-center gap-1 p-2 text-sm hover:bg-gray-100 transition rounded">
-                  <input
-                    type="checkbox"
-                    checked={subtask.status === "DONE"}
-                    onChange={() =>
-                      handleToggleSubtaskStatus(subtask.id, subtask.status)
-                    }
-                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                  />
-                  {/* Click the title to open the subtask in its own panel (Asana-style
-                      drill-down — a subtask can itself have subtasks + an assignee). */}
-                  <button
-                    onClick={() => onOpenTask?.(subtask.id)}
-                    title="Open subtask"
-                    className={`flex-1 text-left truncate px-1 hover:text-red-600 hover:underline ${
-                      subtask.status === "DONE"
-                        ? "line-through text-gray-400"
-                        : "text-gray-700"
-                    }`}
+            <DragDropContext onDragEnd={handleSubtaskDragEnd}>
+              <Droppable droppableId="subtasks">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="space-y-2 mb-3"
                   >
-                    {subtask.title}
-                  </button>
-                  {/* Inline assignee — hand the subtask to a specific person. */}
-                  <select
-                    value={subtask.assigneeId || ""}
-                    onChange={(e) =>
-                      handleSubtaskAssignee(subtask.id, e.target.value || null)
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                    title="Assign subtask"
-                    className="max-w-[90px] text-xs bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-600 focus:outline-none focus:border-red-500"
-                  >
-                    <option value="">— </option>
-                    {members.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
+                    {task.subtasks.map((subtask: Subtask, index: number) => (
+                      <Draggable key={subtask.id} draggableId={subtask.id} index={index}>
+                        {(dp, snap) => (
+                          <div
+                            ref={dp.innerRef}
+                            {...dp.draggableProps}
+                            className={`bg-white rounded-lg border transition ${
+                              snap.isDragging
+                                ? "border-red-300 shadow-lg"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-start gap-2 p-2.5">
+                              <span
+                                {...dp.dragHandleProps}
+                                className="mt-0.5 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
+                                title="Drag to reorder"
+                              >
+                                <GripIcon size={16} />
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={subtask.status === "DONE"}
+                                onChange={() =>
+                                  handleToggleSubtaskStatus(subtask.id, subtask.status)
+                                }
+                                className="mt-0.5 w-4 h-4 rounded border-gray-300 cursor-pointer accent-red-600"
+                              />
+                              <div className="flex-1 min-w-0">
+                                {/* Click the title to open the subtask (drill-down). */}
+                                <button
+                                  onClick={() => onOpenTask?.(subtask.id)}
+                                  title="Open subtask"
+                                  className={`block w-full text-left text-sm break-words hover:text-red-600 ${
+                                    subtask.status === "DONE"
+                                      ? "line-through text-gray-400"
+                                      : "text-gray-800"
+                                  }`}
+                                >
+                                  {subtask.title}
+                                </button>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <select
+                                    value={subtask.assigneeId || ""}
+                                    onChange={(e) =>
+                                      handleSubtaskAssignee(subtask.id, e.target.value || null)
+                                    }
+                                    title="Assign subtask"
+                                    className="text-xs bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-gray-600 focus:outline-none focus:border-red-500 max-w-[160px]"
+                                  >
+                                    <option value="">Unassigned</option>
+                                    {members.map((u) => (
+                                      <option key={u.id} value={u.id}>
+                                        {u.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => handleDeleteSubtask(subtask.id)}
+                                    className="ml-auto inline-flex items-center gap-1 text-xs text-gray-500 hover:text-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-md px-2 py-1 transition"
+                                    title="Delete subtask"
+                                  >
+                                    <TrashIcon size={14} /> Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            {isStaged && (
+                              <div className="px-2.5 pb-2.5">
+                                <DistributeControl
+                                  taskId={subtask.id}
+                                  destinations={destProjects}
+                                  people={members}
+                                  defaultAi={true}
+                                  buttonLabel="✨ Make into task for someone"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Draggable>
                     ))}
-                  </select>
-                  <div className="flex flex-col leading-none">
-                    <button
-                      onClick={() => handleMoveSubtask(index, -1)}
-                      disabled={index === 0}
-                      className="text-gray-400 hover:text-blue-600 disabled:opacity-30 text-[10px]"
-                      title="Move up"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => handleMoveSubtask(index, 1)}
-                      disabled={index === task.subtasks.length - 1}
-                      className="text-gray-400 hover:text-blue-600 disabled:opacity-30 text-[10px]"
-                      title="Move down"
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteSubtask(subtask.id)}
-                    className="text-gray-400 hover:text-red-600 transition text-xs px-1"
-                    title="Delete subtask"
-                  >
-                    ✕
-                  </button>
-                </div>
-                {isStaged && (
-                  <div className="px-2 pb-2">
-                    <DistributeControl
-                      taskId={subtask.id}
-                      destinations={destProjects}
-                      people={members}
-                      defaultAi={true}
-                      buttonLabel="✨ Make into task for someone"
-                    />
+                    {provided.placeholder}
                   </div>
                 )}
-                </div>
-              ))}
-            </div>
+              </Droppable>
+            </DragDropContext>
           )}
 
           <div className="flex gap-2">
@@ -857,16 +881,17 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
               value={newSubtaskTitle}
               onChange={(e) => setNewSubtaskTitle(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleCreateSubtask()}
-              placeholder="Add a subtask..."
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
+              placeholder="Add a subtask…"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500"
             />
-            <button
+            <Button
               onClick={handleCreateSubtask}
               disabled={creatingSubtask || !newSubtaskTitle.trim()}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition"
+              variant="primary"
+              leftIcon={<PlusIcon size={16} />}
             >
               Add
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -894,19 +919,16 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
         {/* Actions */}
         {hasChanges && (
-          <div className="flex gap-2 pt-4 border-t">
-            <button
-              onClick={handleSave}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition"
-            >
+          <div className="flex gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-6 px-6 pb-1">
+            <Button onClick={handleSave} variant="primary" size="lg" className="flex-1">
               Save Changes
-            </button>
+            </Button>
             <button
               onClick={() => {
                 setUpdates({});
                 setHasChanges(false);
               }}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold py-2 px-4 rounded transition"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition"
             >
               Discard
             </button>

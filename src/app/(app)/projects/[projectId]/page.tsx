@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { SmartTaskDiscovery } from "@/components/tasks/SmartTaskDiscovery";
+import { Button } from "@/components/ui/Button";
+import { PlusIcon, SparklesIcon, UsersIcon, TrashIcon } from "@/components/ui/icons";
 
 interface Project {
   id: string;
@@ -241,42 +243,33 @@ export default function ProjectPage() {
           aria-label="Project name"
         />
         <div className="flex gap-2 flex-shrink-0">
-          <button
+          <Button
+            active={showNewTaskForm}
             onClick={() => {
               setShowNewTaskForm(!showNewTaskForm);
               setShowGuidedForm(false);
             }}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              showNewTaskForm
-                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
-                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
-            }`}
+            leftIcon={<PlusIcon size={16} />}
           >
-            <span className="text-base leading-none">＋</span> Quick Task
-          </button>
-          <button
+            Quick Task
+          </Button>
+          <Button
+            active={showGuidedForm}
             onClick={() => {
               setShowGuidedForm(!showGuidedForm);
               setShowNewTaskForm(false);
             }}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              showGuidedForm
-                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
-                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
-            }`}
+            leftIcon={<SparklesIcon size={16} />}
           >
-            ✨ Smart Discovery
-          </button>
-          <button
+            Smart Discovery
+          </Button>
+          <Button
+            active={showMembers}
             onClick={() => setShowMembers(!showMembers)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-              showMembers
-                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
-                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
-            }`}
+            leftIcon={<UsersIcon size={16} />}
           >
-            👥 Members ({project.members?.length || 0})
-          </button>
+            Members ({project.members?.length || 0})
+          </Button>
         </div>
       </div>
 
@@ -296,10 +289,10 @@ export default function ProjectPage() {
                 </span>
                 <button
                   onClick={() => handleRemoveMember(m.user?.id, m.user?.name)}
-                  className="text-gray-400 hover:text-red-600 transition text-xs px-1"
+                  className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-md px-2 py-1 transition"
                   title="Remove from project"
                 >
-                  ✕ Remove
+                  <TrashIcon size={13} /> Remove
                 </button>
               </div>
             ))}
@@ -329,13 +322,13 @@ export default function ProjectPage() {
                   </option>
                 ))}
             </select>
-            <button
+            <Button
               type="submit"
+              variant="primary"
               disabled={addingMember || !memberEmail.trim()}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm"
             >
-              {addingMember ? "Adding..." : "Assign to project"}
-            </button>
+              {addingMember ? "Adding…" : "Assign to project"}
+            </Button>
           </form>
           <p className="text-xs text-gray-500 mt-2">
             Assigning a person to the project lets them see and work on its board.
@@ -359,26 +352,23 @@ export default function ProjectPage() {
               type="text"
               value={newTaskName}
               onChange={(e) => setNewTaskName(e.target.value)}
-              placeholder="Task name..."
-              className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
+              placeholder="Task name…"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 text-sm"
               autoFocus
             />
-            <button
-              type="submit"
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
-            >
+            <Button type="submit" variant="primary" leftIcon={<PlusIcon size={16} />}>
               Add
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="subtle"
               onClick={() => {
                 setShowNewTaskForm(false);
                 setFormError(null);
               }}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
             >
               Cancel
-            </button>
+            </Button>
           </form>
         </div>
       )}
