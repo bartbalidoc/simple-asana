@@ -159,6 +159,13 @@ function CopyToProject({
   );
 }
 
+const STATUS_COLS: { key: string; label: string; dot: string }[] = [
+  { key: "TODO", label: "To Do", dot: "bg-gray-400" },
+  { key: "IN_PROGRESS", label: "In Progress", dot: "bg-blue-500" },
+  { key: "IN_REVIEW", label: "In Review", dot: "bg-amber-500" },
+  { key: "DONE", label: "Done", dot: "bg-green-500" },
+];
+
 export default function StagingPage() {
   const toast = useToast();
   const [projects, setProjects] = useState<StagedProject[]>([]);
@@ -167,6 +174,8 @@ export default function StagingPage() {
   const [loading, setLoading] = useState(true);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Board is the default view; toggle to the stacked-row list.
+  const [view, setView] = useState<"board" | "list">("board");
 
   const load = useCallback(async () => {
     try {
@@ -234,14 +243,39 @@ export default function StagingPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Staging (Asana import)</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Imported Asana work — hidden from everyone except admins. Open a task to
-          review its subtasks and comments, then <strong>Copy</strong> it into a real
-          project for someone. Distributed tasks turn green so you can see what&apos;s
-          already handed out.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Staging (Asana import)</h1>
+          <p className="text-sm text-gray-600 mt-1 max-w-2xl">
+            Imported Asana work — hidden from everyone except admins. Open a task to
+            review its subtasks and comments, then <strong>Copy</strong> it into a real
+            project for someone. Distributed tasks turn green so you can see what&apos;s
+            already handed out.
+          </p>
+        </div>
+        {/* View toggle — board by default, slide to stacked rows */}
+        <div className="flex-shrink-0 inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-sm">
+          <button
+            onClick={() => setView("board")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
+              view === "board"
+                ? "bg-red-600 text-white"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <BoardIcon size={14} /> Board
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
+              view === "list"
+                ? "bg-red-600 text-white"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            ☰ Rows
+          </button>
+        </div>
       </div>
 
       {projects.length === 0 && (
@@ -283,7 +317,94 @@ export default function StagingPage() {
                 </div>
               </div>
 
-              {isOpen && (
+              {isOpen && view === "board" && (
+                <div className="border-t border-gray-100 p-3 overflow-x-auto">
+                  <div className="flex gap-3 items-start">
+                    {STATUS_COLS.map((col) => {
+                      const colTasks = proj.tasks.filter((t) => t.status === col.key);
+                      return (
+                        <div
+                          key={col.key}
+                          className="flex-1 basis-0 min-w-[220px] bg-gray-50/70 rounded-xl border border-gray-200/70 p-2"
+                        >
+                          <div className="flex items-center justify-between px-1 mb-2">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                              <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                              {col.label}
+                            </span>
+                            <span className="text-[11px] font-medium text-gray-400">
+                              {colTasks.length}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {colTasks.map((t) => {
+                              const distributed = !!t.distributedAt;
+                              return (
+                                <div
+                                  key={t.id}
+                                  className={`rounded-lg border p-2.5 text-sm shadow-sm ${
+                                    distributed
+                                      ? "bg-green-50 border-green-200"
+                                      : "bg-white border-gray-200"
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-1">
+                                    <button
+                                      onClick={() => setOpenTaskId(t.id)}
+                                      className={`flex-1 text-left break-words hover:text-red-600 ${
+                                        t.status === "DONE"
+                                          ? "text-gray-400 line-through"
+                                          : "text-gray-800"
+                                      }`}
+                                      title="Open task"
+                                    >
+                                      {distributed && (
+                                        <span className="text-green-700 mr-1">✓</span>
+                                      )}
+                                      {t.title}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTask(t.id, t.title)}
+                                      className="flex-shrink-0 text-gray-300 hover:text-red-600"
+                                      title="Delete this staged task"
+                                    >
+                                      <TrashIcon size={14} />
+                                    </button>
+                                  </div>
+                                  <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[11px] text-gray-400">
+                                    {t.subtaskCount > 0 && <span>⌄ {t.subtaskCount}</span>}
+                                    <span>{t.originalAssignee || "—"}</span>
+                                    {distributed && (
+                                      <span className="text-green-700 font-semibold">
+                                        Copied ✓
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="mt-2">
+                                    <CopyToProject
+                                      task={t}
+                                      destinations={destinations}
+                                      people={people}
+                                      onDone={load}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {colTasks.length === 0 && (
+                              <div className="text-[11px] text-gray-300 text-center py-3">
+                                —
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isOpen && view === "list" && (
                 <div className="border-t border-gray-100 divide-y divide-gray-50">
                   {proj.tasks.map((t) => {
                     const distributed = !!t.distributedAt;
