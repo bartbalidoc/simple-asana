@@ -44,6 +44,7 @@ type TaskNode = {
   title: string;
   description?: string | null;
   completed?: boolean;
+  status?: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
   assigneeEmail?: string | null;
   assigneeName?: string | null;
   dueDate?: string | null;
@@ -51,6 +52,8 @@ type TaskNode = {
   comments?: CommentNode[];
   subtasks?: TaskNode[];
 };
+
+const VALID_STATUS = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"];
 
 // Cache email -> userId lookups across the whole import call.
 async function makeUserResolver() {
@@ -78,7 +81,13 @@ async function importTaskNode(
     counts: { tasks: number; comments: number };
   }
 ): Promise<void> {
-  const status = node.completed ? "DONE" : "TODO";
+  // Explicit status (e.g. derived from the Asana section) wins; otherwise
+  // completed → DONE, else TODO.
+  const status = node.completed
+    ? "DONE"
+    : node.status && VALID_STATUS.includes(node.status)
+    ? node.status
+    : "TODO";
   const columnId = ctx.columnsByName.get(STATUS_TO_COLUMN[status]) ?? null;
   const assigneeId = await ctx.resolveUser(node.assigneeEmail);
   const originalAssignee =
@@ -95,10 +104,10 @@ async function importTaskNode(
   const commonData = {
     titleEnc,
     descriptionEnc,
-    status: status as "TODO" | "DONE",
+    status: status as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE",
+    completedAt: status === "DONE" ? new Date() : null,
     priority: priority as "LOW" | "MEDIUM" | "HIGH",
     dueDate,
-    completedAt: node.completed ? new Date() : null,
     order: ctx.order,
     projectId: ctx.projectId,
     columnId,
