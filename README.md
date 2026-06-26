@@ -23,9 +23,11 @@ An internal project-management tool for the BaliDoc team: an admin creates proje
   7. Complexity
   8. **Automation opportunity** (what's manual today, what it should become)
 - **Quick Task** for simple to-dos.
-- **Kanban board** (To Do / In Progress / In Review / Done) with drag-and-drop, color-coded priority (High=red, Medium=yellow, Low=green), subtask progress (`✓ 2/7`), and overdue dates in red.
-- **Task detail panel** — always-editable fields, status, priority, due date, **assign to any team member**, subtasks (add/complete/delete), an **⚡ Automation Opportunity** field, comments, and file attachments.
+- **Kanban board** (To Do / In Progress / In Review / Done) with **drag-and-drop** (reorder within a column *and* move across columns, via `@hello-pangea/dnd`), an **in-column "+ Add task"** composer, **search + assignee filter**, color-coded priority, assignee avatars, subtask progress, and overdue dates in red.
+- **Task detail panel** — always-editable fields, status, priority, due date, **assign to any team member**, **drag-to-reorder subtasks** (each clickable to open + assignable), comments, attachments; opens as a drawer (dimmed backdrop, Esc to close).
+- **Global search** in the top bar — finds projects **and** tasks across every board (task titles decrypted server-side, scoped to what you can see).
 - **Assignment** — assigning a task to someone **auto-grants them access** to that project.
+- **Asana import → Staging → Distribute** (admin) — bring real Asana projects into a hidden, admin-only Staging area, then copy/AI-expand tasks into real projects for people. See **[docs/ASANA_STAGING.md](docs/ASANA_STAGING.md)**.
 - **File attachments** stored in a Google Drive Shared Drive (service account).
 - **PHI fields encrypted at rest** (AES-256-GCM) and **audit logging** of access/changes.
 
@@ -126,6 +128,9 @@ docker-compose up -d --build
 - `POST /api/tasks`, `GET/PATCH/DELETE /api/tasks/[id]` — tasks (PHI encrypted; assignment auto-adds member)
 - `.../comments`, `.../attachments` — encrypted comments, Drive uploads
 - `POST /api/ai/generate-task-with-subtasks` — Smart Discovery synthesis
+- `GET /api/search` — global search across projects + tasks (staging excluded)
+- `POST /api/admin/import` — bulk import Asana content into Staging (secret-guarded, idempotent)
+- `GET /api/admin/staging`, `POST /api/admin/tasks/[id]/distribute` — admin Staging list + copy-to-project (see **[docs/ASANA_STAGING.md](docs/ASANA_STAGING.md)**)
 
 ---
 
@@ -150,10 +155,11 @@ This MVP is **not yet production-safe for PHI**. See **[README_HIPAA.md](docs/RE
 
 ## Known limitations (MVP)
 
-- HTTP only on staging; no automated backups yet
+- HTTP only on staging (no TLS yet)
 - One shared default password for seeded accounts; no password-change UI yet
 - No real-time updates (refresh to see teammates' changes)
-- Dashboard page is a placeholder (Projects page is the main view)
 - Schema synced via `db push` (no migration history)
+
+> Daily DB backups now run on the droplet (cron 03:00 → `/opt/backups`, keeps 14); `./deploy.sh` also backs up before each deploy.
 
 Built with [Claude Code](https://claude.com/claude-code).
