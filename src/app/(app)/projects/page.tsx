@@ -147,42 +147,62 @@ export default function ProjectsPage() {
           <p className="text-gray-600">No projects yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {projects.map((project) => {
+            const total = project.tasks?.length || 0;
             const todoCount = project.tasks?.filter((t) => t.status === "TODO").length || 0;
             const inProgressCount = project.tasks?.filter((t) => t.status === "IN_PROGRESS").length || 0;
             const doneCount = project.tasks?.filter((t) => t.status === "DONE").length || 0;
+            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
             return (
-              <Link key={project.id} href={`/projects/${project.id}`}>
-                <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 break-words" title={project.name}>{project.name}</h3>
+              <Link key={project.id} href={`/projects/${project.id}`} className="group">
+                <div className="h-full bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md hover:border-red-200 transition cursor-pointer flex flex-col">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2 break-words" title={project.name}>
+                      {project.name}
+                    </h3>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteProject(project.id);
+                        }}
+                        className="flex-shrink-0 text-gray-300 hover:text-red-600 text-sm opacity-0 group-hover:opacity-100 transition"
+                        title="Delete project"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
                   {project.description && (
-                    <p className="text-sm text-gray-600 mb-4">{project.description}</p>
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{project.description}</p>
                   )}
 
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="space-y-1">
-                      <div>📋 {project.tasks?.length || 0} tasks</div>
-                      <div>👥 {project.members?.length || 0} members</div>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div className="text-xs">
-                        <div className="text-blue-600 font-medium">{todoCount} to do</div>
-                        <div className="text-yellow-600">{inProgressCount} in progress</div>
-                        <div className="text-green-600">{doneCount} done</div>
+                  <div className="mt-auto space-y-3">
+                    {/* Progress bar */}
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 mb-1">
+                        <span>{pct}% done</span>
+                        <span>{total} tasks</span>
                       </div>
-                      {isAdmin && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDeleteProject(project.id);
-                          }}
-                          className="text-red-600 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-gray-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-gray-400" /> {todoCount}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-gray-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" /> {inProgressCount}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-gray-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> {doneCount}
+                      </span>
+                      <span className="ml-auto text-gray-400">👥 {project.members?.length || 0}</span>
                     </div>
                   </div>
                 </div>

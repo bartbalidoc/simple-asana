@@ -348,7 +348,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (loading) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-96 bg-white shadow-lg p-6 flex items-center justify-center">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-2" />
           <p className="text-gray-600">Loading...</p>
@@ -359,7 +359,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (error) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-96 bg-white shadow-lg p-6">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 p-6">
         <div className="text-red-600 mb-4">{error}</div>
         <button onClick={onClose} className="text-blue-600 hover:underline">
           Close
@@ -375,7 +375,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const totalSubtasks = (task.subtasks || []).length;
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-96 bg-white shadow-lg overflow-y-auto">
+    <div className="fixed right-0 top-0 h-screen w-full max-w-[460px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto">
       <div className="p-6 border-b sticky top-0 bg-white">
         {task.parentTaskId && onOpenTask && (
           <button

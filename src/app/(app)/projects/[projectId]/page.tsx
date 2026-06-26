@@ -240,39 +240,39 @@ export default function ProjectPage() {
           className="flex-1 min-w-0 mr-4 text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none resize-none overflow-hidden break-words"
           aria-label="Project name"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => {
               setShowNewTaskForm(!showNewTaskForm);
               setShowGuidedForm(false);
             }}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
               showNewTaskForm
-                ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
             }`}
           >
-            Quick Task
+            <span className="text-base leading-none">＋</span> Quick Task
           </button>
           <button
             onClick={() => {
               setShowGuidedForm(!showGuidedForm);
               setShowNewTaskForm(false);
             }}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
               showGuidedForm
-                ? "bg-purple-600 text-white hover:bg-purple-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
             }`}
           >
-            Smart Discovery
+            ✨ Smart Discovery
           </button>
           <button
             onClick={() => setShowMembers(!showMembers)}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition ${
               showMembers
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                : "bg-white text-gray-700 border-gray-300 hover:border-red-300 hover:text-red-700"
             }`}
           >
             👥 Members ({project.members?.length || 0})
