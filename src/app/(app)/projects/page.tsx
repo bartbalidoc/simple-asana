@@ -25,6 +25,7 @@ export default function ProjectsPage() {
   const [newProject, setNewProject] = useState({ name: "", description: "" });
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
 
   const fetchProjects = async () => {
     try {
@@ -152,6 +153,21 @@ export default function ProjectsPage() {
         </form>
       )}
 
+      {!loading && projects.length > 0 && (
+        <div className="relative max-w-sm mb-5">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            🔍
+          </span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search projects…"
+            className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-red-500"
+          />
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto" />
@@ -162,7 +178,16 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {projects.map((project) => {
+          {projects
+            .filter((project) => {
+              const ql = query.trim().toLowerCase();
+              if (!ql) return true;
+              return (
+                project.name.toLowerCase().includes(ql) ||
+                (project.description || "").toLowerCase().includes(ql)
+              );
+            })
+            .map((project) => {
             const total = project.tasks?.length || 0;
             const todoCount = project.tasks?.filter((t) => t.status === "TODO").length || 0;
             const inProgressCount = project.tasks?.filter((t) => t.status === "IN_PROGRESS").length || 0;

@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/layout/SignOutButton";
 import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 export default async function AppLayout({
   children,
@@ -38,9 +39,11 @@ export default async function AppLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200">
           <div className="h-1 bg-gradient-to-r from-rose-500 via-red-600 to-red-700" />
-          <div className="px-6 py-3 flex justify-between items-center">
-            <span className="text-sm font-semibold text-gray-500">Project &amp; Task Hub</span>
-            <div className="flex items-center gap-4">
+          <div className="px-6 py-3 flex justify-between items-center gap-4">
+            <div className="flex-1 max-w-md">
+              <GlobalSearch />
+            </div>
+            <div className="flex items-center gap-4 flex-shrink-0">
               <span className="text-sm text-gray-600">
                 {session.user.email}
                 {session.user.role === "ADMIN" && (
