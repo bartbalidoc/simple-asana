@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ActivityUser {
   id: string;
@@ -26,8 +26,17 @@ interface ActivityData {
     commentsWritten: number;
   };
   users: ActivityUser[];
-  recent: { id: string; text: string; relativeTime: string }[];
+  recent: { id: string; text: string; relativeTime: string; occurredAt: string }[];
 }
+
+const ACTIVITY_TYPES = [
+  { value: "", label: "All activity" },
+  { value: "USER_LOGIN", label: "Logins" },
+  { value: "TASK_CREATED", label: "Tasks created" },
+  { value: "TASK_UPDATED", label: "Task updates" },
+  { value: "TASK_VIEWED", label: "Task opens" },
+  { value: "COMMENT_CREATED", label: "Comments" },
+];
 
 type SortKey =
   | "name"
@@ -67,6 +76,80 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Never";
 
+const fmtDateTime = (s: string) =>
+  new Date(s).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+// Compact multi-select dropdown for people (button + checkbox popover).
+function PeopleSelect({
+  people,
+  selected,
+  onChange,
+}: {
+  people: { id: string; name: string }[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+  const toggle = (id: string) =>
+    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+  const label =
+    selected.length === 0
+      ? "Everyone"
+      : selected.length === 1
+      ? people.find((p) => p.id === selected[0])?.name || "1 person"
+      : `${selected.length} people`;
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-red-500 min-w-[120px] text-left flex items-center justify-between gap-2"
+      >
+        <span className="truncate">{label}</span>
+        <span className="text-gray-400 text-xs">▾</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl p-1">
+          {selected.length > 0 && (
+            <button
+              onClick={() => onChange([])}
+              className="w-full text-left px-2 py-1.5 text-xs text-gray-500 hover:text-red-600"
+            >
+              Clear selection
+            </button>
+          )}
+          {people.map((p) => (
+            <label
+              key={p.id}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(p.id)}
+                onChange={() => toggle(p.id)}
+                className="accent-red-600"
+              />
+              <span className="truncate">{p.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ActivityPage() {
   const [data, setData] = useState<ActivityData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +158,8 @@ export default function ActivityPage() {
   const [timeMode, setTimeMode] = useState<"7" | "30" | "90" | "custom">("7");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [userId, setUserId] = useState("");
+  const [userIds, setUserIds] = useState<string[]>([]);
+  const [actionType, setActionType] = useState("");
   const [role, setRole] = useState("");
   const [projectId, setProjectId] = useState("");
   const [engagement, setEngagement] = useState("");
@@ -108,7 +192,8 @@ export default function ActivityPage() {
     } else {
       params.set("days", timeMode);
     }
-    if (userId) params.set("userId", userId);
+    if (userIds.length) params.set("userId", userIds.join(","));
+    if (actionType) params.set("action", actionType);
     if (role) params.set("role", role);
     if (projectId) params.set("projectId", projectId);
     if (engagement) params.set("engagement", engagement);
@@ -122,7 +207,7 @@ export default function ActivityPage() {
         .finally(() => setLoading(false));
     }, 200);
     return () => clearTimeout(id);
-  }, [timeMode, from, to, userId, role, projectId, engagement]);
+  }, [timeMode, from, to, userIds, actionType, role, projectId, engagement]);
 
   const sortedUsers = useMemo(() => {
     if (!data) return [];
@@ -156,7 +241,8 @@ export default function ActivityPage() {
     setTimeMode("7");
     setFrom("");
     setTo("");
-    setUserId("");
+    setUserIds([]);
+    setActionType("");
     setRole("");
     setProjectId("");
     setEngagement("");
@@ -175,7 +261,12 @@ export default function ActivityPage() {
   );
 
   const filtersActive =
-    timeMode !== "7" || userId || role || projectId || engagement;
+    timeMode !== "7" ||
+    userIds.length > 0 ||
+    actionType ||
+    role ||
+    projectId ||
+    engagement;
 
   return (
     <div>
@@ -220,10 +311,11 @@ export default function ActivityPage() {
           </>
         )}
 
-        <select value={userId} onChange={(e) => setUserId(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-red-500">
-          <option value="">Everyone</option>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+        <PeopleSelect people={people} selected={userIds} onChange={setUserIds} />
+
+        <select value={actionType} onChange={(e) => setActionType(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-red-500">
+          {ACTIVITY_TYPES.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
           ))}
         </select>
 
@@ -335,18 +427,24 @@ export default function ActivityPage() {
             </table>
           </div>
 
-          {/* Recent activity feed */}
+          {/* Activity / event log */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Recent activity</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              {actionType
+                ? `${ACTIVITY_TYPES.find((a) => a.value === actionType)?.label} log`
+                : "Recent activity"}
+            </h3>
             {data.recent.length === 0 ? (
               <p className="text-sm text-gray-400">No activity in this window.</p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="divide-y divide-gray-50">
                 {data.recent.map((r) => (
-                  <li key={r.id} className="flex items-center gap-2 text-sm">
+                  <li key={r.id} className="flex items-center gap-3 text-sm py-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                    <span className="text-gray-700">{r.text}</span>
-                    <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">{r.relativeTime}</span>
+                    <span className="text-gray-700 flex-1 min-w-0 truncate">{r.text}</span>
+                    <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap">
+                      {fmtDateTime(r.occurredAt)}
+                    </span>
                   </li>
                 ))}
               </ul>

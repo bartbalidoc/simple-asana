@@ -89,8 +89,13 @@ export async function GET(req: NextRequest) {
 
     const projectId = sp.get("projectId") || null;
     const roleFilter = sp.get("role"); // ADMIN | MEMBER
-    const userIdFilter = sp.get("userId") || null;
+    const userIds = (sp.get("userId") || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const engagement = sp.get("engagement"); // active | inactive | never
+    const actionParam = sp.get("action"); // filter the feed to one audit action
+    const actionFilter = actionParam && VERBS[actionParam] ? actionParam : null;
 
     // "work" metric scoping: a specific project, or all non-staging projects
     const taskScope: any = projectId
@@ -197,7 +202,7 @@ export async function GET(req: NextRequest) {
     if (roleFilter === "ADMIN" || roleFilter === "MEMBER") {
       usersOut = usersOut.filter((u) => u.role === roleFilter);
     }
-    if (userIdFilter) usersOut = usersOut.filter((u) => u.id === userIdFilter);
+    if (userIds.length) usersOut = usersOut.filter((u) => userIds.includes(u.id));
     if (engagement === "active") {
       usersOut = usersOut.filter((u) => u.activeDays > 0 || u.logins > 0);
     } else if (engagement === "inactive") {
@@ -214,9 +219,12 @@ export async function GET(req: NextRequest) {
       commentsWritten: usersOut.reduce((s, u) => s + u.commentsWritten, 0),
     };
 
-    // --- recent activity feed (respects window + userId + project filters) ---
-    const feedWhere: any = { occurredAt: inWindow, actorId: { not: null } };
-    if (userIdFilter) feedWhere.actorId = userIdFilter;
+    // --- recent activity feed (respects window + people + action + project filters) ---
+    const feedWhere: any = {
+      occurredAt: inWindow,
+      actorId: userIds.length ? { in: userIds } : { not: null },
+    };
+    if (actionFilter) feedWhere.action = actionFilter;
     if (projectId) {
       const projTasks = await prisma.task.findMany({
         where: { projectId },
@@ -232,7 +240,8 @@ export async function GET(req: NextRequest) {
       where: feedWhere,
       include: { actor: { select: { name: true } } },
       orderBy: { occurredAt: "desc" },
-      take: 30,
+      // When filtering to a specific action (e.g. logins) show a longer log.
+      take: actionFilter ? 200 : 50,
     });
     const recentOut = recent.map((r) => ({
       id: r.id,
