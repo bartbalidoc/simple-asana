@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 interface StagedTask {
   id: string;
   title: string;
+  description?: string;
   status: string;
   priority: string;
   dueDate: string | null;
@@ -176,6 +177,7 @@ export default function StagingPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   // Board is the default view; toggle to the stacked-row list.
   const [view, setView] = useState<"board" | "list">("board");
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -253,8 +255,22 @@ export default function StagingPage() {
             already handed out.
           </p>
         </div>
+        {/* Search across imported task titles, descriptions and original owners */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="relative w-64">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            🔍
+          </span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search imported tasks…"
+            className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-red-500"
+          />
+        </div>
         {/* View toggle — board by default, slide to stacked rows */}
-        <div className="flex-shrink-0 inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-sm">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-sm">
           <button
             onClick={() => setView("board")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
@@ -276,6 +292,7 @@ export default function StagingPage() {
             ☰ Rows
           </button>
         </div>
+        </div>
       </div>
 
       {projects.length === 0 && (
@@ -284,9 +301,29 @@ export default function StagingPage() {
         </div>
       )}
 
+      {(() => {
+        const q = query.trim().toLowerCase();
+        const matches = (t: StagedTask) =>
+          !q ||
+          t.title.toLowerCase().includes(q) ||
+          (t.description || "").toLowerCase().includes(q) ||
+          (t.originalAssignee || "").toLowerCase().includes(q);
+        const filtered = projects
+          .map((p) => ({ ...p, tasks: p.tasks.filter(matches) }))
+          .filter((p) => !q || p.tasks.length > 0);
+
+        if (q && filtered.length === 0) {
+          return (
+            <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+              No imported tasks match “{query.trim()}”.
+            </div>
+          );
+        }
+
+        return (
       <div className="space-y-4">
-        {projects.map((proj) => {
-          const isOpen = expanded[proj.id] ?? true;
+        {filtered.map((proj) => {
+          const isOpen = q ? true : (expanded[proj.id] ?? true);
           return (
             <div key={proj.id} className="bg-white rounded-lg shadow">
               <div className="flex items-center justify-between px-4 py-3">
@@ -299,7 +336,9 @@ export default function StagingPage() {
                   {isOpen ? "▾" : "▸"} {proj.name}
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 mr-1">{proj.taskCount} tasks</span>
+                  <span className="text-xs text-gray-400 mr-1">
+                    {query.trim() ? `${proj.tasks.length} match${proj.tasks.length === 1 ? "" : "es"}` : `${proj.tasks.length} tasks`}
+                  </span>
                   <a
                     href={`/projects/${proj.id}?from=staging`}
                     className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-700 border border-gray-200 hover:border-red-300 rounded-md px-2 py-1 whitespace-nowrap transition"
@@ -470,6 +509,8 @@ export default function StagingPage() {
           );
         })}
       </div>
+        );
+      })()}
 
       {openTaskId && (
         <TaskDetailPanel

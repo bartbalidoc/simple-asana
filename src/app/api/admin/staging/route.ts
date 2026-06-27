@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { NextRequest, NextResponse } from "next/server";
 
+function safeDecrypt(s: string): string {
+  try {
+    return decrypt(s);
+  } catch {
+    return "";
+  }
+}
+
 // Admin-only: list the hidden "Staging" projects (Asana imports) with their
 // top-level tasks. Each task carries its subtask count, distribution state
 // (distributedAt → drives the "Copied ✓" color) and the original Asana owner.
@@ -36,6 +44,8 @@ export async function GET(req: NextRequest) {
       tasks: p.tasks.map((t) => ({
         id: t.id,
         title: decrypt(t.titleEnc),
+        // Included so the Staging search can match on task content, not just titles.
+        description: t.descriptionEnc ? safeDecrypt(t.descriptionEnc) : "",
         status: t.status,
         priority: t.priority,
         dueDate: t.dueDate,
