@@ -172,6 +172,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         include: { project: { include: { columns: true } } },
       });
 
+      // Maintain completedAt on the normal lifecycle (powers the Activity view's
+      // "tasks completed"). Set when entering DONE; clear when leaving it. Don't
+      // overwrite the original completion time if it's already DONE.
+      if (body.status === "DONE" && currentTask?.status !== "DONE") {
+        updateData.completedAt = new Date();
+      } else if (body.status !== "DONE") {
+        updateData.completedAt = null;
+      }
+
       if (currentTask?.project) {
         const targetColumnName = statusToColumnName[body.status];
         const targetColumn = currentTask.project.columns.find(

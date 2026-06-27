@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { writeAuditLog } from "./audit";
 
 declare module "next-auth" {
   interface Session {
@@ -104,6 +105,25 @@ export const authOptions: NextAuthOptions = {
 
           token.id = dbUser.id;
           token.role = dbUser.role;
+
+          // Record the login for the Team Activity view. The `if (user)` branch
+          // runs once per real sign-in (not on silent token refresh), so this is
+          // our login-frequency signal. Best-effort — never block auth.
+          try {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { lastSeenAt: new Date() },
+            });
+            await writeAuditLog({
+              actorId: dbUser.id,
+              action: "USER_LOGIN",
+              resource: "user",
+              resourceId: dbUser.id,
+              // No NextRequest in NextAuth callbacks → ipAddress stays null.
+            });
+          } catch (e) {
+            console.error("login activity capture failed:", e);
+          }
         } catch (error) {
           console.error("Error creating/fetching user:", error);
         }
