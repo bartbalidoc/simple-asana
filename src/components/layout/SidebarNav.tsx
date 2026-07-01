@@ -53,6 +53,13 @@ const ClockIcon = (
   </svg>
 );
 
+const MegaphoneIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 11l14-6v14L3 13z" />
+    <path d="M7 12v5a2 2 0 0 0 4 0v-3" />
+  </svg>
+);
+
 export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav className="p-3 space-y-0.5 overflow-y-auto flex-1">
@@ -81,6 +88,7 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
           <NavLink href="/admin/users" label="Users" icon={<UsersIcon size={16} />} />
           <NavLink href="/admin/audit-log" label="Audit Log" icon={ClockIcon} />
           <NavLink href="/admin/feedback" label="Feedback" icon={<SparklesIcon size={16} />} />
+          <NavLink href="/admin/release-notes" label="Release Notes" icon={MegaphoneIcon} />
         </>
       )}
     </nav>
