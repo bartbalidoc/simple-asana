@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
           orderBy: { order: "asc" },
         },
       },
+      // Sidebar order (feedback #5); stable tiebreak by name for equal orders.
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     });
 
     return NextResponse.json(projects);

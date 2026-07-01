@@ -40,6 +40,10 @@ model Project {
   updatedAt   DateTime @updatedAt
   archivedAt  DateTime?
 
+  // Sidebar sort position (feedback #5). Fractional so a project can be dragged
+  // between two others by only rewriting its own value. Shared/global order.
+  order       Float    @default(0)
+
   // Hidden, admin-only "Staging" projects (imported from Asana). Never shown to
   // workers; surfaced only in the admin Staging view.
   isStaging   Boolean  @default(false)

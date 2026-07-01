@@ -117,7 +117,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    const { name, description, archived } = body;
+    const { name, description, archived, order } = body;
 
     const project = await prisma.project.update({
       where: { id: projectId },
@@ -127,6 +127,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ...(archived !== undefined && {
           archivedAt: archived ? new Date() : null,
         }),
+        // Sidebar drag-to-reorder (feedback #5).
+        ...(order !== undefined && { order }),
       },
     });
 

@@ -17,7 +17,7 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 | 2 | UI | Expandable comment box | Sidney | ✅ live |
 | 3 | Bug | @mention tagging intermittent | Meilinda | ✅ live |
 | 4 | Feature | Move tasks between boards | Meilinda | ✅ built |
-| 5 | Feature | Drag-and-drop sidebar order | Sidney | ⬜ |
+| 5 | Feature | Drag-and-drop sidebar order | Sidney | ✅ built |
 | 6 | Feature | Transcript → tasks (Claude) | Meilinda | ⬜ |
 
 ---
@@ -141,10 +141,38 @@ leaves the current board and appears on the destination board in the column matc
 subtasks come with it. First real use: move Meilinda's "touristpharmacy.com" task → "Projects with
 Bart".
 
-**Status:** ✅ Built + unit-tested — deploying after the #3 rebuild finishes (one deploy at a time).
+**Status:** ✅ Live on production (commit `d62144f`, deployed 2026-07-01). Prod DB backed up first;
+data intact (12 users / 18 projects / 1648 tasks).
 
 ## 5 · [FEATURE] Drag-and-drop sidebar order — Sidney
-_Pending._
+
+**Reported:** "The project list in the left sidebar is unorganized — let me reorder it (drag-and-drop
+or A→Z)." Owner chose **drag-and-drop**.
+
+**Implemented (global/shared order):**
+- **Schema** (`prisma/schema.prisma`): added `order Float @default(0)` to `Project`. Applied to prod
+  automatically on deploy (the container boots with `prisma db push`).
+- **API:**
+  - `GET /api/projects` now sorts by `order` (tiebreak by name).
+  - `PATCH /api/projects/[projectId]` accepts `order`.
+  - New `POST /api/projects/reorder` — takes the full `orderedIds[]` and renumbers `order = index` in
+    one transaction (no colliding values — important because every project starts at order 0). A user
+    can only reorder boards they can access (admins: all); unknown ids are ignored.
+- **UI** (`src/components/layout/ProjectSidebarList.tsx`): rewritten with `@hello-pangea/dnd` (already
+  used by the task board). Each project has a **grip handle (⠿)** to drag — clicks on the name still
+  navigate normally. Optimistic reorder, persisted via the reorder endpoint, reverts on failure.
+
+**Scope note:** order is **global/shared** (one order for everyone), stored on the project. Simple and
+matches a small shared workspace. Per-user ordering would need per-membership order — noted as a
+possible follow-up.
+
+**Test:** `scripts/test-project-reorder.mjs` — 5 assertions on the array-move + renumber logic (unique
+0..N-1, no collisions). **All 5 pass.**
+
+**How to verify:** in the left sidebar, hover a project → grab the grip handle → drag it up/down →
+release. The order sticks after reload.
+
+**Status:** ✅ Built + unit-tested — deploying now (schema auto-applies on boot).
 
 ## 6 · [FEATURE] Transcript → tasks via Anthropic Claude — Meilinda
 _Pending. Needs `ANTHROPIC_API_KEY` on the server._
