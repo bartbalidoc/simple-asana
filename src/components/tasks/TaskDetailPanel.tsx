@@ -49,6 +49,9 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   // Real (non-staging) projects to distribute staged tasks into.
   const [destProjects, setDestProjects] = useState<any[]>([]);
+  // Projects this user can MOVE the task into (feedback #4).
+  const [moveProjects, setMoveProjects] = useState<any[]>([]);
+  const [moving, setMoving] = useState(false);
   const isStaged = !!task?.project?.isStaging;
 
   useEffect(() => {
@@ -104,6 +107,18 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
             }
           }
         }
+
+        // Load the projects this user can MOVE this task into (feedback #4).
+        // /api/projects returns only the boards they belong to (all, for admins),
+        // which is exactly the set they're allowed to move a task onto.
+        try {
+          if (!data.project?.isStaging && !data.parentTaskId) {
+            const pr = await fetch(`/api/projects`);
+            if (pr.ok) setMoveProjects(await pr.json());
+          }
+        } catch {
+          // Non-fatal: the move dropdown just won't list other boards.
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
       } finally {
@@ -133,6 +148,39 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       onTaskUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update assignee");
+    }
+  };
+
+  // Move this task to a different project board (feedback #4). On success the
+  // task leaves the current board, so we refresh it and close the panel.
+  const handleMoveToProject = async (projectId: string) => {
+    if (!projectId || projectId === task.projectId) return;
+    const dest = moveProjects.find((p) => p.id === projectId);
+    const destName = dest?.name || "the selected project";
+    if (
+      !confirm(
+        `Move this task to "${destName}"? It will leave "${task.project?.name ?? "this board"}".`
+      )
+    ) {
+      return;
+    }
+    try {
+      setMoving(true);
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to move task");
+      }
+      toast(`Moved to ${destName}`);
+      onTaskUpdated?.(); // refresh the source board — the task disappears from it
+      onClose?.(); // the task now lives on another board
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't move task", "error");
+      setMoving(false);
     }
   };
 
@@ -711,6 +759,35 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
 
+        {/* Move to another project board (feedback #4) */}
+        {!isStaged && !task.parentTaskId && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Project board
+            </label>
+            <select
+              value={task.projectId}
+              disabled={moving}
+              onChange={(e) => handleMoveToProject(e.target.value)}
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-60"
+            >
+              <option value={task.projectId}>
+                {task.project?.name ? `${task.project.name} (current)` : "Current board"}
+              </option>
+              {moveProjects
+                .filter((p) => p.id !== task.projectId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    → Move to: {p.name}
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {moving ? "Moving…" : "Pick another board to move this task (and its subtasks) there."}
+            </p>
+          </div>
+        )}
+
         {/* Assignee */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -752,7 +829,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                   throw new Error(errorData.details || "Failed to update status");
                 }
                 const updated = await response.json();
-                setTask(updated);
+                // Preserve loaded comments (PATCH response omits them) — item #1.
+                setTask((prev: any) => ({
+                  ...prev,
+                  ...updated,
+                  comments: prev?.comments ?? updated.comments ?? [],
+                }));
                 setUpdates({});
                 setHasChanges(false);
                 console.log("Status updated, calling onTaskUpdated");

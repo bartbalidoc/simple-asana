@@ -207,6 +207,85 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.order !== undefined) updateData.order = body.order;
     if (body.template !== undefined) updateData.template = body.template;
 
+    // --- Move the task to a different project board (feedback #4) ---
+    // A worker may only move a task between boards they belong to; access to the
+    // SOURCE board was already verified above via checkTaskAccess/admin.
+    let movedFromProjectId: string | null = null;
+    if (body.projectId !== undefined) {
+      const moveTask = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: { projectId: true, status: true, parentTaskId: true },
+      });
+      if (!moveTask) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+      if (body.projectId !== moveTask.projectId) {
+        // Subtasks follow their parent — don't move them independently.
+        if (moveTask.parentTaskId) {
+          return NextResponse.json(
+            { error: "Move the parent task; subtasks follow it automatically." },
+            { status: 400 }
+          );
+        }
+
+        const destProject = await prisma.project.findUnique({
+          where: { id: body.projectId },
+          include: { columns: { orderBy: { order: "asc" } } },
+        });
+        if (!destProject || destProject.isStaging) {
+          return NextResponse.json(
+            { error: "Destination project not found" },
+            { status: 404 }
+          );
+        }
+
+        // Authorize the DESTINATION board.
+        if (session.user.role !== "ADMIN") {
+          const isMember = await prisma.projectMember.findFirst({
+            where: { projectId: body.projectId, userId: session.user.id },
+            select: { id: true },
+          });
+          if (!isMember) {
+            return NextResponse.json(
+              { error: "You are not a member of the destination project" },
+              { status: 403 }
+            );
+          }
+        }
+
+        // Remap the column: the old columnId belongs to the source board. Land in
+        // the destination column matching the task's status, else the first column.
+        const statusToColumnName: Record<string, string> = {
+          TODO: "To Do",
+          IN_PROGRESS: "In Progress",
+          IN_REVIEW: "In Review",
+          DONE: "Done",
+        };
+        const effectiveStatus = (body.status ?? moveTask.status) as string;
+        const destColumn =
+          destProject.columns.find(
+            (c) => c.name === statusToColumnName[effectiveStatus]
+          ) ||
+          destProject.columns[0] ||
+          null;
+
+        updateData.projectId = body.projectId;
+        updateData.columnId = destColumn ? destColumn.id : null;
+        updateData.order = 0; // land at the top of its new column
+
+        // Carry any subtasks along so none are orphaned on the old board.
+        await prisma.task.updateMany({
+          where: { parentTaskId: taskId },
+          data: {
+            projectId: body.projectId,
+            ...(destColumn ? { columnId: destColumn.id } : {}),
+          },
+        });
+
+        movedFromProjectId = moveTask.projectId;
+      }
+    }
+
     // Resolve the task's project so assigning grants the assignee access to it.
     let assigneeProjectId: string | null = null;
     if (body.assigneeId !== undefined) {
@@ -252,6 +331,22 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       metadata: { updated: Object.keys(body) },
       req,
     });
+
+    // Record cross-project moves explicitly for the audit trail (from → to).
+    if (movedFromProjectId) {
+      await writeAuditLog({
+        actorId: session.user.id,
+        action: "TASK_UPDATED",
+        resource: "task",
+        resourceId: taskId,
+        metadata: {
+          moved: true,
+          fromProjectId: movedFromProjectId,
+          toProjectId: body.projectId,
+        },
+        req,
+      });
+    }
 
     const decrypted = {
       ...task,

@@ -16,7 +16,7 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 | 1 | Bug | Task save clobbers title/comment | Meilinda | ✅ live |
 | 2 | UI | Expandable comment box | Sidney | ✅ live |
 | 3 | Bug | @mention tagging intermittent | Meilinda | ✅ live |
-| 4 | Feature | Move tasks between boards | Meilinda | ⬜ |
+| 4 | Feature | Move tasks between boards | Meilinda | ✅ built |
 | 5 | Feature | Drag-and-drop sidebar order | Sidney | ⬜ |
 | 6 | Feature | Transcript → tasks (Claude) | Meilinda | ⬜ |
 
@@ -107,7 +107,41 @@ dropdown stays open through the space and inserts the full name; they get the me
 **Status:** ✅ Implemented + unit-tested — deploying to live now.
 
 ## 4 · [FEATURE] Move tasks between boards — Meilinda
-_Pending._
+
+**Reported:** "How can I move tasks to someone else's project board?" + a one-off "move this task to
+Projects with Bart". Flagged by the owner as **core — must work well and be easy.**
+
+**What was missing:** the task-update API accepted a new `columnId` but never a new `projectId`, and
+there was no UI to move a task. Tasks were stuck on the board they were created in.
+
+**Implemented:**
+- **API** (`src/app/api/tasks/[taskId]/route.ts`, PATCH): now accepts `projectId`. When it differs
+  from the task's current project it:
+  - **Authorizes the destination** — the mover must be a member of the destination board (admins may
+    move anywhere); access to the source board was already checked. Rejects non-members with 403.
+  - **Remaps the column** — the old `columnId` belongs to the source board, so the task lands in the
+    destination column matching its status (To Do / In Progress / In Review / Done), falling back to
+    the destination's first column. Placed at the top (`order = 0`).
+  - **Carries subtasks along** (`updateMany` on `parentTaskId`) so nothing is orphaned on the old
+    board. Subtasks can't be moved on their own (they follow the parent).
+  - **Refuses** moving onto a staging/import board or a non-existent project.
+  - **Audit-logs** the move explicitly (`from → to` project ids).
+- **UI** (`src/components/tasks/TaskDetailPanel.tsx`): a clear **"Project board"** dropdown at the top
+  of the task's detail panel showing the current board plus "→ Move to: <board>" for every board the
+  user can access. Picking one confirms, moves, toasts, refreshes the source board, and closes the
+  panel. Only shown for real (non-staged) top-level tasks.
+- Also fixed one more instance of the item-#1 comment-wipe (the inline **Status** change handler now
+  preserves loaded comments too).
+
+**Test:** `scripts/test-move-task.mjs` — 7 assertions on the destination-column remapping (status →
+column, custom-column fallback, no-columns safety). **All 7 pass.**
+
+**How to verify:** open a task → "Project board" dropdown → pick another board → confirm. The task
+leaves the current board and appears on the destination board in the column matching its status; its
+subtasks come with it. First real use: move Meilinda's "touristpharmacy.com" task → "Projects with
+Bart".
+
+**Status:** ✅ Built + unit-tested — deploying after the #3 rebuild finishes (one deploy at a time).
 
 ## 5 · [FEATURE] Drag-and-drop sidebar order — Sidney
 _Pending._
