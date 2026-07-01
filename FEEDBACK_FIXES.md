@@ -18,7 +18,7 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 | 3 | Bug | @mention tagging intermittent | Meilinda | ✅ live |
 | 4 | Feature | Move tasks between boards | Meilinda | ✅ built |
 | 5 | Feature | Drag-and-drop sidebar order | Sidney | ✅ built |
-| 6 | Feature | Transcript → tasks (Claude) | Meilinda | ✅ built |
+| 6 | Feature | Transcript → tasks (Claude) | Meilinda | ✅ live |
 
 ---
 
@@ -202,4 +202,7 @@ extracted 5 correctly-prioritized tasks from a sample transcript).
 **How to verify:** open **Meeting → Tasks**, paste a meeting transcript → Generate → a draft task list
 appears → tweak/select → pick a board → Create → the tasks (and subtasks) show up on that board.
 
-**Status:** ✅ Built + Claude call validated — deploying now (key already on prod).
+**Status:** ✅ Live on production (commit `7fae9eb`, deployed 2026-07-01). Verified end-to-end on prod:
+`ANTHROPIC_API_KEY` present in the container, and an authenticated admin request to
+`/api/ai/transcript-to-tasks` returned 3 correctly-prioritized draft tasks (with subtasks) from a real
+transcript — preview only, nothing created.
