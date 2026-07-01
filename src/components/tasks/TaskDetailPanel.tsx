@@ -117,7 +117,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
       if (!response.ok) throw new Error("Failed to update assignee");
       const updated = await response.json();
-      setTask(updated);
+      // Preserve loaded comments (PATCH response omits them) so they don't vanish.
+      setTask((prev: any) => ({
+        ...prev,
+        ...updated,
+        comments: prev?.comments ?? updated.comments ?? [],
+      }));
       onTaskUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update assignee");
@@ -134,7 +139,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
       if (!response.ok) throw new Error("Failed to update priority");
       const updated = await response.json();
-      setTask(updated);
+      // Preserve loaded comments (PATCH response omits them) so they don't vanish.
+      setTask((prev: any) => ({
+        ...prev,
+        ...updated,
+        comments: prev?.comments ?? updated.comments ?? [],
+      }));
       onTaskUpdated?.(); // refresh board so the card badge updates immediately
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update priority");
@@ -156,7 +166,14 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
       if (!response.ok) throw new Error("Failed to update task");
       const updated = await response.json();
-      setTask(updated);
+      // The PATCH response does NOT include `comments`, so preserve the comments
+      // already in state — otherwise a just-posted comment vanishes from view
+      // after saving field edits (the other half of the "one change is lost" bug).
+      setTask((prev: any) => ({
+        ...prev,
+        ...updated,
+        comments: prev?.comments ?? updated.comments ?? [],
+      }));
       setUpdates({});
       setHasChanges(false);
       onTaskUpdated?.(); // refresh the board so card priority/title update immediately
@@ -343,7 +360,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       const response = await fetch(`/api/tasks/${taskId}`);
       if (!response.ok) throw new Error("Failed to fetch task");
       const data = await response.json();
-      setTask(data);
+      // Only refresh the comments list — never replace the whole task object.
+      // A full setTask() here would clobber the user's in-flight unsaved edits
+      // (title/description live in `updates`, but other freshly-saved fields and
+      // the loaded comments would be lost). This is the fix for the
+      // "title OR comment is lost when you Save both at once" bug.
+      setTask((prev: any) => (prev ? { ...prev, comments: data.comments } : data));
     } catch (err) {
       console.error("Failed to refresh comments:", err);
     }
