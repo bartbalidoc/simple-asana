@@ -175,9 +175,22 @@ export function CommentList({
             <div className="space-y-2">
               <textarea
                 value={editBody}
-                onChange={(e) => setEditBody(e.target.value)}
-                rows={3}
-                className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
+                // Auto-grow to fit the comment being edited (feedback #2).
+                ref={(el) => {
+                  if (!el) return;
+                  el.style.height = "auto";
+                  el.style.height = `${Math.min(el.scrollHeight, 260)}px`;
+                  el.style.overflowY = el.scrollHeight > 260 ? "auto" : "hidden";
+                }}
+                onChange={(e) => {
+                  setEditBody(e.target.value);
+                  const el = e.target;
+                  el.style.height = "auto";
+                  el.style.height = `${Math.min(el.scrollHeight, 260)}px`;
+                  el.style.overflowY = el.scrollHeight > 260 ? "auto" : "hidden";
+                }}
+                className="w-full border border-gray-300 rounded p-2 text-sm resize-none focus:outline-none focus:border-red-500"
+                style={{ minHeight: "4.5rem" }}
                 disabled={busyId === comment.id}
               />
               <div className="flex gap-2">

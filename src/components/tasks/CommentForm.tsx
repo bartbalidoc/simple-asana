@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 
 interface Member {
   id: string;
@@ -23,6 +23,19 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Auto-grow the comment box to fit its content (feedback #2): expand as the
+  // user types, up to a max height, then scroll. Runs on every `body` change,
+  // which covers typing, mention insertion, and clearing after submit.
+  const MAX_TEXTAREA_HEIGHT = 260; // px — roughly a dozen lines before scrolling
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto"; // reset so shrinking works too
+    const next = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
+  }, [body]);
 
   const suggestions =
     mentionQuery === null
@@ -133,8 +146,8 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Add a comment... (use @ to mention a teammate)"
-          className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-blue-600"
-          rows={2}
+          className="w-full border border-gray-300 rounded p-2 text-sm resize-none focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-blue-600"
+          style={{ minHeight: "3.5rem" }}
           disabled={loading}
         />
 

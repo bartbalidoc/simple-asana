@@ -13,8 +13,8 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 
 | # | Type | Item | Submitter | Status |
 |---|------|------|-----------|--------|
-| 1 | Bug | Task save clobbers title/comment | Meilinda | 🔶 verifying |
-| 2 | UI | Expandable comment box | Sidney | ⬜ |
+| 1 | Bug | Task save clobbers title/comment | Meilinda | ✅ live |
+| 2 | UI | Expandable comment box | Sidney | ✅ live |
 | 3 | Bug | @mention tagging intermittent | Meilinda | ⬜ |
 | 4 | Feature | Move tasks between boards | Meilinda | ⬜ |
 | 5 | Feature | Drag-and-drop sidebar order | Sidney | ⬜ |
@@ -54,12 +54,32 @@ handleAssigneeChange, handlePriorityChange).
 2. Reload the page → both the new title AND the comment persist.
 3. Repeat changing priority/assignee while a comment is present → comment stays visible.
 
-**Status:** 🔶 Implemented — verifying in the live app.
+**Status:** ✅ Live on production (commit `c729778`, deployed 2026-07-01). Prod DB backed up first;
+data intact (12 users / 18 projects / 183 comments / 1648 tasks).
 
 ---
 
 ## 2 · [UI] Expandable comment box — Sidney
-_Pending._
+
+**Reported:** "The comment text box is too small — writing/reviewing longer feedback is hard when you
+only see a couple of lines. Make it dynamic/expandable (or resizable)."
+
+**Fix — auto-grow the textarea to fit its content, up to a max, then scroll:**
+- `src/components/tasks/CommentForm.tsx` — the "add a comment" box. Removed the fixed `rows={2}`; added
+  a `useLayoutEffect` keyed on the comment text that sets the height to `scrollHeight` (capped at
+  260px, then it scrolls). Keeps a ~2-line minimum via `min-height`. Covers typing, @mention
+  insertion, and the reset-to-small after posting. Disabled the manual resize grip (`resize-none`)
+  since it now grows on its own.
+- `src/components/tasks/CommentList.tsx` — the inline "edit comment" box gets the same auto-grow (via a
+  `ref` + `onChange` sizer) so editing a long existing comment opens at the right height.
+
+No new dependency (no `react-textarea-autosize`) — plain DOM measurement.
+
+**How to verify:** open a task, start typing a long multi-line comment → the box grows as you type,
+and stops growing (scrolls) past ~a dozen lines. Edit an existing long comment → opens tall enough to
+read.
+
+**Status:** ✅ Implemented — deploying to live now.
 
 ## 3 · [BUG] @mention tagging intermittent — Meilinda
 _Pending. Deep-dive root causes: typeahead regex `/(?:^|\s)@(\w*)$/` breaks on the space in
