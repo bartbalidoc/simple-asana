@@ -68,6 +68,9 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
         </Link>
       )}
 
+      {/* AI: meeting transcript → tasks (feedback #6) — available to everyone */}
+      <NavLink href="/transcript" label="Meeting → Tasks" icon={<SparklesIcon size={16} />} />
+
       {isAdmin && (
         <>
           <div className="px-3 pt-4 pb-1 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">

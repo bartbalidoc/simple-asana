@@ -18,7 +18,7 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 | 3 | Bug | @mention tagging intermittent | Meilinda | ✅ live |
 | 4 | Feature | Move tasks between boards | Meilinda | ✅ built |
 | 5 | Feature | Drag-and-drop sidebar order | Sidney | ✅ built |
-| 6 | Feature | Transcript → tasks (Claude) | Meilinda | ⬜ |
+| 6 | Feature | Transcript → tasks (Claude) | Meilinda | ✅ built |
 
 ---
 
@@ -172,7 +172,34 @@ possible follow-up.
 **How to verify:** in the left sidebar, hover a project → grab the grip handle → drag it up/down →
 release. The order sticks after reload.
 
-**Status:** ✅ Built + unit-tested — deploying now (schema auto-applies on boot).
+**Status:** ✅ Live on production (commit `b40dc89`, deployed 2026-07-01). Verified: `Project.order`
+column added on boot, all 18 projects intact, and `GET /api/projects` returns `order` (checked via an
+authenticated admin request). Prod DB backed up first.
 
 ## 6 · [FEATURE] Transcript → tasks via Anthropic Claude — Meilinda
-_Pending. Needs `ANTHROPIC_API_KEY` on the server._
+
+**Reported:** "I want to automate my monthly/weekly items and connect it from Claude — Claude looks at
+the meeting transcripts, makes an action list, and creates organized tasks in this app."
+
+**Implemented — the app's first REAL Anthropic Claude integration** (the older `/api/ai/*` routes call
+OpenAI despite their "Claude" comments):
+- **`src/lib/anthropic.ts`** — `transcriptToTasks()` calls the Claude **Messages API**
+  (`POST https://api.anthropic.com/v1/messages`, headers `x-api-key` + `anthropic-version: 2023-06-01`)
+  with **structured outputs** (`output_config.format` → `json_schema`) so Claude always returns
+  schema-valid JSON (title, description, priority, subtasks). Model defaults to **`claude-opus-4-8`**,
+  overridable via `ANTHROPIC_MODEL` (e.g. `claude-haiku-4-5` for ~5× lower cost). Guards the
+  `stop_reason: "refusal"` case; normalizes/validates every field before it reaches the UI.
+- **`POST /api/ai/transcript-to-tasks`** — auth-gated; input `{ transcript }`; returns a **draft** task
+  list. Preview only — it never creates anything. Length guards (min ~20, max 100k chars).
+- **UI `/transcript`** (+ "Meeting → Tasks" sidebar link, all users) — paste transcript → **Generate
+  tasks** → review/edit/select drafts (editable title + priority, checkboxes) → pick a board →
+  **Create**. Creation reuses `POST /api/tasks` (parent + subtasks via `parentTaskId`), with progress.
+
+**Config:** `ANTHROPIC_API_KEY` added to `.env.local` (dev), the droplet `.env` (prod), and passed
+through `docker-compose.yml`; documented in `.env.example`. Key validated with a live call (Opus 4.8
+extracted 5 correctly-prioritized tasks from a sample transcript).
+
+**How to verify:** open **Meeting → Tasks**, paste a meeting transcript → Generate → a draft task list
+appears → tweak/select → pick a board → Create → the tasks (and subtasks) show up on that board.
+
+**Status:** ✅ Built + Claude call validated — deploying now (key already on prod).
