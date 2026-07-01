@@ -25,6 +25,9 @@ interface DraftTask {
   subtasks: string[];
   projectId: string;
   assigneeId: string;
+  // The name Claude heard in the transcript (e.g. "kadel"), kept so the user can
+  // sanity-check the auto-match. Empty when nobody was named.
+  assigneeName: string;
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -56,6 +59,10 @@ export default function TranscriptToTasksPage() {
   const [creating, setCreating] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [createdCount, setCreatedCount] = useState<number | null>(null);
+
+  // Per-task "Fix with AI": the instruction being typed and which task is refining.
+  const [refineInputs, setRefineInputs] = useState<Record<number, string>>({});
+  const [refiningIdx, setRefiningIdx] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -91,7 +98,8 @@ export default function TranscriptToTasksPage() {
         priority: t.priority,
         subtasks: Array.isArray(t.subtasks) ? t.subtasks : [],
         projectId: defaultProjectId, // per-task, defaults to the current default board
-        assigneeId: "", // unassigned by default
+        assigneeId: typeof t.assigneeId === "string" ? t.assigneeId : "", // Claude's roster match (editable)
+        assigneeName: typeof t.assigneeName === "string" ? t.assigneeName : "",
       }));
       setTasks(drafts);
       setSelected(new Set(drafts.map((_: DraftTask, i: number) => i)));
@@ -112,6 +120,56 @@ export default function TranscriptToTasksPage() {
 
   const updateTask = (i: number, patch: Partial<DraftTask>) => {
     setTasks((prev) => (prev ? prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) : prev));
+  };
+
+  // Subtask editing — non-native-English drafts often need these reworded.
+  const updateSubtask = (i: number, si: number, value: string) =>
+    setTasks((prev) =>
+      prev
+        ? prev.map((t, idx) =>
+            idx === i ? { ...t, subtasks: t.subtasks.map((s, k) => (k === si ? value : s)) } : t
+          )
+        : prev
+    );
+  const removeSubtask = (i: number, si: number) =>
+    setTasks((prev) =>
+      prev ? prev.map((t, idx) => (idx === i ? { ...t, subtasks: t.subtasks.filter((_, k) => k !== si) } : t)) : prev
+    );
+  const addSubtask = (i: number) =>
+    setTasks((prev) => (prev ? prev.map((t, idx) => (idx === i ? { ...t, subtasks: [...t.subtasks, ""] } : t)) : prev));
+
+  // "Fix with AI": send the current task + the user's instruction to Claude and
+  // apply the rewritten fields. Board/assignee are preserved locally.
+  const refineWithAI = async (i: number) => {
+    if (!tasks) return;
+    const instruction = (refineInputs[i] || "").trim();
+    if (instruction.length < 2) return;
+    const t = tasks[i];
+    setRefiningIdx(i);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/refine-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: { title: t.title, description: t.description, priority: t.priority, subtasks: t.subtasks },
+          instruction,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fix the task.");
+      updateTask(i, {
+        title: data.task.title,
+        description: data.task.description,
+        priority: data.task.priority,
+        subtasks: Array.isArray(data.task.subtasks) ? data.task.subtasks : t.subtasks,
+      });
+      setRefineInputs((prev) => ({ ...prev, [i]: "" }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to fix the task.");
+    } finally {
+      setRefiningIdx(null);
+    }
   };
 
   // Bulk helpers — apply a board / assignee to every draft at once.
@@ -156,13 +214,14 @@ export default function TranscriptToTasksPage() {
         const parent = await res.json();
 
         // 2) create its subtasks (best-effort; a failed subtask doesn't abort the batch)
-        for (let s = 0; s < t.subtasks.length; s++) {
+        const subtasks = t.subtasks.map((s) => s.trim()).filter(Boolean);
+        for (let s = 0; s < subtasks.length; s++) {
           await fetch("/api/tasks", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               projectId: t.projectId,
-              title: t.subtasks[s],
+              title: subtasks[s],
               parentTaskId: parent.id,
               assigneeId: t.assigneeId || undefined,
               columnId: columnId || undefined,
@@ -317,9 +376,13 @@ export default function TranscriptToTasksPage() {
                             <option value="LOW">LOW</option>
                           </select>
                         </div>
-                        {t.description && (
-                          <p className="text-xs text-gray-500 mt-1">{t.description}</p>
-                        )}
+                        <textarea
+                          value={t.description}
+                          onChange={(e) => updateTask(i, { description: e.target.value })}
+                          placeholder="Add a description…"
+                          rows={2}
+                          className="w-full mt-1 text-xs text-gray-600 bg-transparent border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1.5 py-1 focus:outline-none resize-y"
+                        />
 
                         {/* Per-task board + assignee */}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -349,18 +412,70 @@ export default function TranscriptToTasksPage() {
                               </option>
                             ))}
                           </select>
+                          {/* Show what Claude heard so the user can trust or fix the auto-match. */}
+                          {t.assigneeName &&
+                            (t.assigneeId ? (
+                              <span
+                                className="text-[11px] text-gray-400"
+                                title={`Transcript said “${t.assigneeName}”, matched to a team member`}
+                              >
+                                heard “{t.assigneeName}”
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-amber-600" title="No confident match — please pick">
+                                heard “{t.assigneeName}” — no match, pick one
+                              </span>
+                            ))}
                         </div>
 
-                        {t.subtasks.length > 0 && (
-                          <ul className="mt-2 space-y-0.5">
-                            {t.subtasks.map((s, si) => (
-                              <li key={si} className="text-xs text-gray-600 flex gap-1.5">
-                                <span className="text-gray-300">•</span>
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {/* Editable subtasks */}
+                        <div className="mt-2 space-y-1">
+                          {t.subtasks.map((s, si) => (
+                            <div key={si} className="flex items-center gap-1.5">
+                              <span className="text-gray-300 text-xs">•</span>
+                              <input
+                                value={s}
+                                onChange={(e) => updateSubtask(i, si, e.target.value)}
+                                placeholder="Subtask…"
+                                className="flex-1 text-xs text-gray-600 bg-transparent border-b border-transparent hover:border-gray-200 focus:border-gray-300 focus:outline-none py-0.5"
+                              />
+                              <button
+                                onClick={() => removeSubtask(i, si)}
+                                title="Remove subtask"
+                                className="text-gray-300 hover:text-red-500 text-xs px-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => addSubtask(i)}
+                            className="text-[11px] text-red-600 hover:underline mt-0.5"
+                          >
+                            + Add subtask
+                          </button>
+                        </div>
+
+                        {/* Fix with AI — big corrections in one step (great for rough English) */}
+                        <div className="mt-3 flex items-center gap-2 border-t border-dashed border-gray-200 pt-2">
+                          <input
+                            value={refineInputs[i] || ""}
+                            onChange={(e) => setRefineInputs((prev) => ({ ...prev, [i]: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") refineWithAI(i);
+                            }}
+                            placeholder="Fix with AI — e.g. “client is Tourist Pharmacy, rewrite in clear English”"
+                            disabled={refiningIdx === i}
+                            className="flex-1 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 disabled:bg-gray-50"
+                          />
+                          <button
+                            onClick={() => refineWithAI(i)}
+                            disabled={refiningIdx === i || (refineInputs[i] || "").trim().length < 2}
+                            className="text-xs font-semibold text-white bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 rounded px-3 py-1.5 whitespace-nowrap transition"
+                          >
+                            {refiningIdx === i ? "Fixing…" : "✨ Fix"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

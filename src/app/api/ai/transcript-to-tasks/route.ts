@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { transcriptToTasks, anthropicEnabled } from "@/lib/anthropic";
+import { prisma } from "@/lib/prisma";
 
 // Feedback #6: analyze a meeting transcript with Claude and return a DRAFT task
 // list. This endpoint only previews tasks — it never creates them. The client
@@ -37,7 +38,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tasks = await transcriptToTasks(transcript);
+    // Give Claude the real roster so it can attribute each task to a person and
+    // self-correct transcription mishears (e.g. "kadel" → "Adel").
+    const roster = await prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
+    const tasks = await transcriptToTasks(transcript, roster);
     return NextResponse.json({ tasks });
   } catch (error) {
     console.error("POST /api/ai/transcript-to-tasks error:", error);
