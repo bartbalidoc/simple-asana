@@ -63,7 +63,7 @@ export const RELEASES: Release[] = [
         type: "new",
         title: "Turn a meeting transcript into tasks (AI)",
         detail:
-          "New “Meeting → Tasks” page: paste a meeting transcript and Claude drafts organized tasks with priorities and subtasks. Review, pick a board, and create them — nothing is created until you click Create.",
+          "New “Meeting → Tasks” page: paste a meeting transcript and Claude drafts organized tasks with priorities and subtasks. Set each task's board and assignee (individually or all at once), review, and create — nothing is created until you click Create. Tasks land in the “To Do” column of the chosen board.",
         requestedBy: "Meilinda",
       },
     ],

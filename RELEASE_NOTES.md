@@ -36,5 +36,6 @@ Six items submitted through the in-app feedback button, all shipped.
 
 - **New — Turn a meeting transcript into tasks (AI)** _(requested by Meilinda)_
   New "Meeting → Tasks" page: paste a meeting transcript and Claude drafts organized tasks with
-  priorities and subtasks. Review, pick a board, and create them — nothing is created until you
-  click Create.
+  priorities and subtasks. Set each task's **board and assignee** (individually or all at once),
+  review, and create — nothing is created until you click Create. Tasks land in the "To Do" column
+  of the chosen board.

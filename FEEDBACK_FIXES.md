@@ -206,3 +206,10 @@ appears → tweak/select → pick a board → Create → the tasks (and subtasks
 `ANTHROPIC_API_KEY` present in the container, and an authenticated admin request to
 `/api/ai/transcript-to-tasks` returned 3 correctly-prioritized draft tasks (with subtasks) from a real
 transcript — preview only, nothing created.
+
+**Follow-up (2026-07-01):** created tasks weren't appearing on the board — they were created with
+`columnId: null` (the board's `byColumn` filter hides column-less tasks). Fixed: the create flow now
+sets each task's `columnId` to the destination board's "To Do" column (first column fallback). Also
+**added per-task controls** — each draft now has its own **board** and **assignee** dropdown (plus
+"apply to all" bulk setters); subtasks + assignee follow the parent. Rescued the 6 already-orphaned
+tasks in "Future Projects" by attaching them to that board's To Do column.

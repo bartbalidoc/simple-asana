@@ -2,15 +2,29 @@
 
 import { useEffect, useState } from "react";
 
+interface Column {
+  id: string;
+  name: string;
+  order: number;
+}
+interface Project {
+  id: string;
+  name: string;
+  columns?: Column[];
+}
+interface TeamUser {
+  id: string;
+  name: string;
+  email: string;
+}
+// A draft returned by Claude, plus the per-task board + assignee the user picks.
 interface DraftTask {
   title: string;
   description: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
   subtasks: string[];
-}
-interface Project {
-  id: string;
-  name: string;
+  projectId: string;
+  assigneeId: string;
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -19,8 +33,14 @@ const PRIORITY_STYLES: Record<string, string> = {
   LOW: "bg-gray-100 text-gray-600",
 };
 
-// Feedback #6: paste a meeting transcript → Claude drafts organized tasks →
-// review/select → pick a project → create. Uses real Anthropic Claude.
+// The destination column for a new task on a board: prefer "To Do", else the first.
+function firstColumnId(project?: Project): string | null {
+  const cols = project?.columns || [];
+  return (cols.find((c) => c.name === "To Do") || cols[0])?.id ?? null;
+}
+
+// Feedback #6: paste a meeting transcript → Claude drafts organized tasks → set
+// each task's board + assignee → create. Uses real Anthropic Claude.
 export default function TranscriptToTasksPage() {
   const [transcript, setTranscript] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -30,7 +50,8 @@ export default function TranscriptToTasksPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState("");
+  const [users, setUsers] = useState<TeamUser[]>([]);
+  const [defaultProjectId, setDefaultProjectId] = useState("");
 
   const [creating, setCreating] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -42,9 +63,13 @@ export default function TranscriptToTasksPage() {
       .then((data) => {
         const list: Project[] = Array.isArray(data) ? data : [];
         setProjects(list);
-        if (list[0]) setProjectId(list[0].id);
+        if (list[0]) setDefaultProjectId(list[0].id);
       })
       .catch(() => setProjects([]));
+    fetch("/api/users")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setUsers(Array.isArray(data) ? data : []))
+      .catch(() => setUsers([]));
   }, []);
 
   const analyze = async () => {
@@ -60,9 +85,16 @@ export default function TranscriptToTasksPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to analyze transcript.");
-      const drafts: DraftTask[] = data.tasks || [];
+      const drafts: DraftTask[] = (data.tasks || []).map((t: any) => ({
+        title: t.title,
+        description: t.description || "",
+        priority: t.priority,
+        subtasks: Array.isArray(t.subtasks) ? t.subtasks : [],
+        projectId: defaultProjectId, // per-task, defaults to the current default board
+        assigneeId: "", // unassigned by default
+      }));
       setTasks(drafts);
-      setSelected(new Set(drafts.map((_, i) => i))); // select all by default
+      setSelected(new Set(drafts.map((_: DraftTask, i: number) => i)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -82,10 +114,20 @@ export default function TranscriptToTasksPage() {
     setTasks((prev) => (prev ? prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) : prev));
   };
 
+  // Bulk helpers — apply a board / assignee to every draft at once.
+  const setAllBoards = (projectId: string) =>
+    setTasks((prev) => (prev ? prev.map((t) => ({ ...t, projectId })) : prev));
+  const setAllAssignees = (assigneeId: string) =>
+    setTasks((prev) => (prev ? prev.map((t) => ({ ...t, assigneeId })) : prev));
+
   const createSelected = async () => {
-    if (!tasks || !projectId) return;
+    if (!tasks) return;
     const chosen = tasks.map((t, i) => ({ t, i })).filter(({ i }) => selected.has(i));
     if (chosen.length === 0) return;
+    if (chosen.some(({ t }) => !t.projectId)) {
+      setError("Every selected task needs a board.");
+      return;
+    }
 
     setCreating(true);
     setError(null);
@@ -93,15 +135,20 @@ export default function TranscriptToTasksPage() {
     let created = 0;
     try {
       for (const { t } of chosen) {
-        // 1) create the parent task
+        const project = projects.find((p) => p.id === t.projectId);
+        const columnId = firstColumnId(project); // <-- the fix: tasks must land in a column to show
+
+        // 1) create the parent task IN a column so it shows on the board
         const res = await fetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            projectId,
+            projectId: t.projectId,
             title: t.title,
             description: t.description || undefined,
             priority: t.priority,
+            assigneeId: t.assigneeId || undefined,
+            columnId: columnId || undefined,
             template: "general",
           }),
         });
@@ -114,9 +161,11 @@ export default function TranscriptToTasksPage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              projectId,
+              projectId: t.projectId,
               title: t.subtasks[s],
               parentTaskId: parent.id,
+              assigneeId: t.assigneeId || undefined,
+              columnId: columnId || undefined,
               template: "general",
               order: s,
             }),
@@ -137,22 +186,20 @@ export default function TranscriptToTasksPage() {
     }
   };
 
-  const projectName = projects.find((p) => p.id === projectId)?.name;
-
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Meeting → Tasks</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Paste a meeting transcript and Claude will draft organized tasks. Review, pick a board, and
-          create them — nothing is created until you click <strong>Create</strong>.
+          Paste a meeting transcript and Claude will draft organized tasks. Set each task&apos;s board
+          and assignee, then create — nothing is created until you click <strong>Create</strong>.
         </p>
       </div>
 
       {createdCount !== null && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
-          ✅ Created {createdCount} task{createdCount === 1 ? "" : "s"}
-          {projectName ? ` in “${projectName}”` : ""}. You can paste another transcript below.
+          ✅ Created {createdCount} task{createdCount === 1 ? "" : "s"}. They appear in the “To Do”
+          column of each chosen board. Paste another transcript below to continue.
         </div>
       )}
 
@@ -191,10 +238,37 @@ export default function TranscriptToTasksPage() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {selected.size} of {tasks.length} task{tasks.length === 1 ? "" : "s"} selected
-                </h2>
+              {/* Bulk controls */}
+              <div className="flex flex-wrap items-center gap-3 mb-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Apply to all
+                </span>
+                <select
+                  onChange={(e) => e.target.value && setAllBoards(e.target.value)}
+                  defaultValue=""
+                  className="border border-gray-300 rounded p-1.5 text-xs focus:outline-none focus:border-red-500"
+                >
+                  <option value="">Board…</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  onChange={(e) => setAllAssignees(e.target.value)}
+                  defaultValue=""
+                  className="border border-gray-300 rounded p-1.5 text-xs focus:outline-none focus:border-red-500"
+                >
+                  <option value="">Assignee…</option>
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex-1" />
                 <button
                   onClick={() =>
                     setSelected(
@@ -206,6 +280,10 @@ export default function TranscriptToTasksPage() {
                   {selected.size === tasks.length ? "Deselect all" : "Select all"}
                 </button>
               </div>
+
+              <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                {selected.size} of {tasks.length} task{tasks.length === 1 ? "" : "s"} selected
+              </h2>
 
               <div className="space-y-2">
                 {tasks.map((t, i) => (
@@ -242,6 +320,37 @@ export default function TranscriptToTasksPage() {
                         {t.description && (
                           <p className="text-xs text-gray-500 mt-1">{t.description}</p>
                         )}
+
+                        {/* Per-task board + assignee */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <label className="text-[11px] text-gray-400">Board</label>
+                          <select
+                            value={t.projectId}
+                            onChange={(e) => updateTask(i, { projectId: e.target.value })}
+                            className="border border-gray-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:border-red-500"
+                          >
+                            {projects.length === 0 && <option value="">No boards</option>}
+                            {projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                          <label className="text-[11px] text-gray-400 ml-2">Assignee</label>
+                          <select
+                            value={t.assigneeId}
+                            onChange={(e) => updateTask(i, { assigneeId: e.target.value })}
+                            className="border border-gray-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:border-red-500"
+                          >
+                            <option value="">Unassigned</option>
+                            {users.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
                         {t.subtasks.length > 0 && (
                           <ul className="mt-2 space-y-0.5">
                             {t.subtasks.map((s, si) => (
@@ -260,23 +369,9 @@ export default function TranscriptToTasksPage() {
 
               {/* Create bar */}
               <div className="mt-5 flex flex-wrap items-center gap-3 border-t pt-4">
-                <label className="text-sm text-gray-700">Create in board:</label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  disabled={creating}
-                  className="border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:border-red-500"
-                >
-                  {projects.length === 0 && <option value="">No projects available</option>}
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
                 <button
                   onClick={createSelected}
-                  disabled={creating || selected.size === 0 || !projectId}
+                  disabled={creating || selected.size === 0}
                   className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-2 px-5 rounded-lg text-sm transition"
                 >
                   {creating
@@ -285,6 +380,9 @@ export default function TranscriptToTasksPage() {
                       : "Creating…"
                     : `Create ${selected.size} task${selected.size === 1 ? "" : "s"}`}
                 </button>
+                <span className="text-xs text-gray-400">
+                  Each task goes to its own board &amp; assignee (set above).
+                </span>
               </div>
             </>
           )}
