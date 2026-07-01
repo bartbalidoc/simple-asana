@@ -15,8 +15,10 @@ const TEAM = [
   { name: "Dr Bintang", email: "drbintang@balidoc.com", role: "MEMBER" as const },
   { name: "Dr Karina", email: "drkarina@balidoc.com", role: "MEMBER" as const },
   { name: "Dr Mona", email: "drmona@balidoc.com", role: "MEMBER" as const },
-  { name: "Bart", email: "bart@balidoc.com", role: "MEMBER" as const },
-  { name: "Meilinda", email: "meilinda@balidoc.com", role: "MEMBER" as const },
+  // Admins (promoted over time — kept in sync here so a re-seed never demotes them).
+  { name: "Bart", email: "bart@balidoc.com", role: "ADMIN" as const },
+  { name: "Meilinda", email: "meilinda@balidoc.com", role: "ADMIN" as const },
+  { name: "Gabriel", email: "gabriel@balidoc.com", role: "ADMIN" as const },
   { name: "Fafa", email: "fafa@balidoc.com", role: "MEMBER" as const },
   { name: "Development", email: "development@balidoc.com", role: "MEMBER" as const },
 ];
