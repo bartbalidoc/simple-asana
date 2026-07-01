@@ -15,7 +15,7 @@ Status legend: ✅ done · 🔶 in progress · ⬜ queued
 |---|------|------|-----------|--------|
 | 1 | Bug | Task save clobbers title/comment | Meilinda | ✅ live |
 | 2 | UI | Expandable comment box | Sidney | ✅ live |
-| 3 | Bug | @mention tagging intermittent | Meilinda | ⬜ |
+| 3 | Bug | @mention tagging intermittent | Meilinda | ✅ live |
 | 4 | Feature | Move tasks between boards | Meilinda | ⬜ |
 | 5 | Feature | Drag-and-drop sidebar order | Sidney | ⬜ |
 | 6 | Feature | Transcript → tasks (Claude) | Meilinda | ⬜ |
@@ -79,11 +79,32 @@ No new dependency (no `react-textarea-autosize`) — plain DOM measurement.
 and stops growing (scrolls) past ~a dozen lines. Edit an existing long comment → opens tall enough to
 read.
 
-**Status:** ✅ Implemented — deploying to live now.
+**Status:** ✅ Live on production (commit `f759ec7`, deployed 2026-07-01). Prod DB backed up first.
 
 ## 3 · [BUG] @mention tagging intermittent — Meilinda
-_Pending. Deep-dive root causes: typeahead regex `/(?:^|\s)@(\w*)$/` breaks on the space in
-multi-word names; project-members fetch fails silently; missing null-name guard._
+
+**Reported:** "Tagging people in the comment box worked before but is not working always."
+
+**Deep-dive root causes (ranked) and fixes:**
+1. **PRIMARY — typeahead regex broke on spaces.** `CommentForm.tsx` used `/(?:^|\s)@(\w*)$/`; `\w`
+   stops at a space, so typing `@John Smith` made the dropdown **vanish the moment you hit space**
+   after "John" — multi-word names were untaggable. Fixed to `/(?:^|\s)@([^@\n]{0,40})$/` (allows
+   spaces, bounded). The **insertion** regex was widened to match (`/@[^@\n]{0,40}$/`) so picking a
+   suggestion replaces the whole `@John Sm` → `@John Smith `.
+2. **Members fetch failed silently.** `TaskDetailPanel.tsx` swallowed any error loading project
+   members, leaving the dropdown empty with no clue. Now **retries once** and logs a visible warning.
+3. **Null-name crash.** `CommentForm.tsx` filter called `m.name.toLowerCase()` with no guard; a member
+   with a null name could throw and break the box. Now `(m.name || "")`; insertion also falls back to
+   email/`"user"`.
+
+**Test:** `scripts/test-mention-typeahead.mjs` — 9 assertions covering single- and multi-word names,
+mid-sentence mentions, a second mention after a finished one, emails NOT triggering the menu, and the
+null-name edge case. Run with `node scripts/test-mention-typeahead.mjs`. **All 9 pass.**
+
+**How to verify in the app:** open a task, type `@John Smith` (a real multi-word teammate) → the
+dropdown stays open through the space and inserts the full name; they get the mention email.
+
+**Status:** ✅ Implemented + unit-tested — deploying to live now.
 
 ## 4 · [FEATURE] Move tasks between boards — Meilinda
 _Pending._

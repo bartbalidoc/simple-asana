@@ -44,7 +44,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
           .filter((m) => {
             const q = mentionQuery.toLowerCase();
             return (
-              m.name.toLowerCase().includes(q) ||
+              (m.name || "").toLowerCase().includes(q) ||
               (m.email || "").toLowerCase().includes(q)
             );
           })
@@ -54,7 +54,12 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   // typing an @mention (an "@" followed by word characters, not mid-word).
   const updateMentionState = (value: string, cursor: number) => {
     const before = value.slice(0, cursor);
-    const match = before.match(/(?:^|\s)@(\w*)$/);
+    // Allow spaces so multi-word names keep the dropdown open (e.g. "@John Smith").
+    // The old /@(\w*)$/ stopped at the first space, so the menu vanished the
+    // moment you typed a space after the first name — the #3 tagging bug.
+    // Capture up to 40 non-"@", non-newline chars after the last "@"; the bound
+    // means a normal sentence after a finished mention naturally closes the menu.
+    const match = before.match(/(?:^|\s)@([^@\n]{0,40})$/);
     if (match) {
       setMentionQuery(match[1]);
       setActiveIndex(0);
@@ -72,7 +77,10 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   const insertMention = (member: Member) => {
     const el = textareaRef.current;
     const cursor = el?.selectionStart ?? body.length;
-    const before = body.slice(0, cursor).replace(/@(\w*)$/, `@${member.name} `);
+    const label = member.name || member.email || "user";
+    // Must mirror the detection regex above so the WHOLE typed "@John Sm" is
+    // replaced by "@John Smith " — not just the last word.
+    const before = body.slice(0, cursor).replace(/@[^@\n]{0,40}$/, `@${label} `);
     const after = body.slice(cursor);
     const newBody = before + after;
     setBody(newBody);

@@ -82,20 +82,27 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         }
 
         // Load just this project's members for the @mention autocomplete.
-        try {
-          if (data.projectId) {
+        // Retry once on failure so a transient hiccup doesn't silently leave the
+        // tag dropdown empty (a cause of "@mention sometimes doesn't work", #3).
+        if (data.projectId) {
+          const loadProjectMembers = async () => {
             const pmRes = await fetch(`/api/projects/${data.projectId}/members`);
-            if (pmRes.ok) {
-              const pm = await pmRes.json();
-              setProjectMembers(
-                (pm || [])
-                  .map((m: any) => m.user)
-                  .filter((u: any) => u && u.id)
-              );
+            if (!pmRes.ok) throw new Error(`members request failed: ${pmRes.status}`);
+            const pm = await pmRes.json();
+            return (pm || [])
+              .map((m: any) => m.user)
+              .filter((u: any) => u && u.id);
+          };
+          try {
+            setProjectMembers(await loadProjectMembers());
+          } catch {
+            try {
+              setProjectMembers(await loadProjectMembers()); // one retry
+            } catch (e) {
+              // Surface it (don't swallow) so this is debuggable if it recurs.
+              console.warn("@mention: couldn't load project members for tagging:", e);
             }
           }
-        } catch {
-          // Non-fatal: mention autocomplete just won't have options
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
