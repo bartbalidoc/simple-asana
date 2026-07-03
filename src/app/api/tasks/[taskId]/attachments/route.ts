@@ -77,6 +77,29 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "file is required" }, { status: 400 });
     }
 
+    // Validate size and type BEFORE reading the whole file into memory.
+    const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "File is too large (max 15 MB)." },
+        { status: 413 }
+      );
+    }
+    const ALLOWED_EXTENSIONS = new Set([
+      "pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
+      "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods",
+      "csv", "txt", "md", "rtf", "zip", "mp4", "mov", "mp3", "m4a", "wav",
+    ]);
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        {
+          error: `This file type (.${ext || "unknown"}) isn't allowed. Allowed: documents, spreadsheets, images, audio/video, zip.`,
+        },
+        { status: 415 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
     let fileId: string, webViewLink: string;
