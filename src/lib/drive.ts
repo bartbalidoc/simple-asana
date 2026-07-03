@@ -72,3 +72,17 @@ export async function deleteFileFromDrive(fileId: string): Promise<void> {
   const drive = initializeDriveClient();
   await drive.files.delete({ fileId, supportsAllDrives: true });
 }
+
+/**
+ * Download a file's raw bytes with the service account. Used by the app's own
+ * authenticated attachment endpoint — Drive view links don't work for team
+ * members because the files are private to the service account.
+ */
+export async function downloadFileFromDrive(fileId: string): Promise<Buffer> {
+  const drive = initializeDriveClient();
+  const res = await drive.files.get(
+    { fileId, alt: "media", supportsAllDrives: true },
+    { responseType: "arraybuffer" }
+  );
+  return Buffer.from(res.data as ArrayBuffer);
+}

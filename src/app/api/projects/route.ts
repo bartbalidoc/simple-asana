@@ -29,17 +29,43 @@ export async function GET(req: NextRequest) {
             },
           },
       include: {
-        members: true,
-        tasks: true,
         columns: {
           orderBy: { order: "asc" },
         },
+        _count: { select: { members: true } },
       },
       // Sidebar order (feedback #5); stable tiebreak by name for equal orders.
       orderBy: [{ order: "asc" }, { name: "asc" }],
     });
 
-    return NextResponse.json(projects);
+    // Per-status task counts in one grouped query instead of shipping every task
+    // row (each with encrypted blobs) — that made this endpoint crawl for admins.
+    const counts = await prisma.task.groupBy({
+      by: ["projectId", "status"],
+      _count: { _all: true },
+      where: { projectId: { in: projects.map((p) => p.id) } },
+    });
+    const byProject: Record<string, Record<string, number>> = {};
+    for (const c of counts) {
+      (byProject[c.projectId] ||= {})[c.status] = c._count._all;
+    }
+
+    return NextResponse.json(
+      projects.map((p) => {
+        const c = byProject[p.id] || {};
+        const total = Object.values(c).reduce((a, b) => a + b, 0);
+        return {
+          ...p,
+          memberCount: p._count.members,
+          taskCounts: {
+            total,
+            todo: c.TODO || 0,
+            inProgress: c.IN_PROGRESS || 0,
+            done: c.DONE || 0,
+          },
+        };
+      })
+    );
   } catch (error) {
     console.error("GET /api/projects error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

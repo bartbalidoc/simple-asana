@@ -38,7 +38,9 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
 
   useEffect(() => {
     fetchAttachments();
-  }, [taskId, fetchAttachments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchAttachments is
+    // recreated every render; depending on it caused an infinite refetch loop.
+  }, [taskId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,7 +58,11 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to upload file");
+      if (!response.ok) {
+        // Surface the server's actual reason (e.g. Drive not configured, no access).
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || `Upload failed (HTTP ${response.status})`);
+      }
 
       await fetchAttachments();
     } catch (err) {
@@ -124,7 +130,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
               className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
             >
               <a
-                href={attachment.driveViewUrl}
+                href={`/api/tasks/${taskId}/attachments/${attachment.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 text-blue-600 hover:underline truncate flex items-center gap-2"
@@ -146,16 +152,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
       )}
 
       <p className="text-xs text-gray-500">
-        Files stored in Google Drive (
-        <a
-          href="https://drive.google.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          view all
-        </a>
-        )
+        Files are stored securely — click a file to view or download it.
       </p>
     </div>
   );

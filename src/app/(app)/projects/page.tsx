@@ -11,8 +11,9 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
-  tasks: any[];
-  members: any[];
+  // Server-computed — the endpoint no longer ships task/member rows.
+  taskCounts: { total: number; todo: number; inProgress: number; done: number };
+  memberCount: number;
 }
 
 export default function ProjectsPage() {
@@ -188,10 +189,10 @@ export default function ProjectsPage() {
               );
             })
             .map((project) => {
-            const total = project.tasks?.length || 0;
-            const todoCount = project.tasks?.filter((t) => t.status === "TODO").length || 0;
-            const inProgressCount = project.tasks?.filter((t) => t.status === "IN_PROGRESS").length || 0;
-            const doneCount = project.tasks?.filter((t) => t.status === "DONE").length || 0;
+            const total = project.taskCounts?.total || 0;
+            const todoCount = project.taskCounts?.todo || 0;
+            const inProgressCount = project.taskCounts?.inProgress || 0;
+            const doneCount = project.taskCounts?.done || 0;
             const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
             return (
@@ -241,7 +242,7 @@ export default function ProjectsPage() {
                       <span className="inline-flex items-center gap-1 text-gray-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> {doneCount}
                       </span>
-                      <span className="ml-auto text-gray-400">👥 {project.members?.length || 0}</span>
+                      <span className="ml-auto text-gray-400">👥 {project.memberCount || 0}</span>
                     </div>
                   </div>
                 </div>

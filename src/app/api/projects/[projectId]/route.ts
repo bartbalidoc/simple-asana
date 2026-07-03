@@ -43,12 +43,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Slim selects: full user rows leaked passwordHash to the client and bloated
+    // the payload — the board only needs id/name/email/avatar/role.
+    const userSelect = { id: true, name: true, email: true, avatarUrl: true, role: true };
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
         members: {
           include: {
-            user: true,
+            user: { select: userSelect },
           },
         },
         columns: {
@@ -56,8 +59,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         },
         tasks: {
           include: {
-            assignee: true,
-            createdBy: true,
+            assignee: { select: userSelect },
+            createdBy: { select: userSelect },
             subtasks: true,
           },
           where: {
@@ -76,15 +79,21 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Decrypt task titles and descriptions
+    // Decrypt task titles and descriptions; drop the ciphertext fields from the
+    // response — the client never uses them and they roughly double the payload.
+    const stripEnc = <T extends Record<string, unknown>>(obj: T) => {
+      const out: Record<string, unknown> = { ...obj };
+      for (const k of Object.keys(out)) if (k.endsWith("Enc")) delete out[k];
+      return out;
+    };
     const decryptedProject = {
       ...project,
       tasks: project.tasks.map((task) => ({
-        ...task,
+        ...stripEnc(task),
         title: decrypt(task.titleEnc),
         description: task.descriptionEnc ? decrypt(task.descriptionEnc) : null,
         subtasks: task.subtasks?.map((st) => ({
-          ...st,
+          ...stripEnc(st),
           title: decrypt(st.titleEnc),
           description: st.descriptionEnc ? decrypt(st.descriptionEnc) : null,
         })) || [],
