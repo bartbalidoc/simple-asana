@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { safeUserSelect } from "@/lib/safeUser";
+import { createNotifications, notifyTaskCollaborators } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
@@ -48,11 +50,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        assignee: true,
-        createdBy: true,
+        assignee: { select: safeUserSelect },
+        createdBy: { select: safeUserSelect },
         project: { select: { isStaging: true, name: true } },
         comments: {
-          include: { author: true },
+          include: { author: { select: safeUserSelect } },
         },
         attachments: true,
         subtasks: {
@@ -126,6 +128,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
+
+    // Prior state so notifications fire only on real changes (not drag-reorders).
+    const before = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, assigneeId: true },
+    });
 
     const updateData: any = {};
 
@@ -315,8 +323,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       where: { id: taskId },
       data: updateData,
       include: {
-        assignee: true,
-        createdBy: true,
+        assignee: { select: safeUserSelect },
+        createdBy: { select: safeUserSelect },
         subtasks: {
           orderBy: { order: "asc" },
         },
@@ -346,6 +354,60 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         },
         req,
       });
+    }
+
+    // In-app notifications for everyone on the task (feedback: multi-assignee
+    // broadcast). Fire only on real changes; helpers are best-effort.
+    {
+      const actorName = session.user.name || "Someone";
+      const notifTitle = (() => {
+        try {
+          return decrypt(task.titleEnc);
+        } catch {
+          return "a task";
+        }
+      })();
+      const statusLabels: Record<string, string> = {
+        TODO: "To Do",
+        IN_PROGRESS: "In Progress",
+        IN_REVIEW: "In Review",
+        DONE: "Done",
+      };
+
+      if (body.status !== undefined && before && body.status !== before.status) {
+        await notifyTaskCollaborators({
+          taskId,
+          actorId: session.user.id,
+          actorName,
+          type: "STATUS",
+          message: `${actorName} moved "${notifTitle}" to ${statusLabels[task.status] || task.status}`,
+        });
+      }
+      if (
+        body.assigneeId !== undefined &&
+        before &&
+        body.assigneeId &&
+        body.assigneeId !== before.assigneeId &&
+        body.assigneeId !== session.user.id
+      ) {
+        await createNotifications({
+          recipientIds: [body.assigneeId],
+          actorName,
+          type: "ASSIGNED",
+          message: `${actorName} assigned you "${notifTitle}"`,
+          taskId: task.parentTaskId || taskId,
+          projectId: task.projectId,
+        });
+      }
+      if (movedFromProjectId) {
+        await notifyTaskCollaborators({
+          taskId,
+          actorId: session.user.id,
+          actorName,
+          type: "UPDATE",
+          message: `${actorName} moved "${notifTitle}" to another board`,
+        });
+      }
     }
 
     const decrypted = {

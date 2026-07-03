@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeUserSelect } from "@/lib/safeUser";
 import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -19,10 +20,21 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Only members of the project (or admins) may see its roster.
+    if (session.user.role !== "ADMIN") {
+      const membership = await prisma.projectMember.findFirst({
+        where: { projectId, userId: session.user.id },
+        select: { id: true },
+      });
+      if (!membership) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     const members = await prisma.projectMember.findMany({
       where: { projectId },
       include: {
-        user: true,
+        user: { select: safeUserSelect },
       },
     });
 
@@ -72,7 +84,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         userId: user.id,
       },
       include: {
-        user: true,
+        user: { select: safeUserSelect },
       },
     });
 

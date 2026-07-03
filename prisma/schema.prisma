@@ -25,6 +25,25 @@ model User {
   comments           Comment[]
   auditLogs          AuditLog[]
   feedback           Feedback[]
+  notifications      Notification[]
+}
+
+// In-app notifications (feedback: multi-assignee broadcast + deep-linking).
+// message is encrypted like task titles — it usually contains one.
+model Notification {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  actorName  String? // denormalized display name; avoids a join
+  type       String // COMMENT | MENTION | STATUS | ASSIGNED | UPDATE
+  messageEnc String
+  taskId     String?
+  projectId  String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 enum Role {

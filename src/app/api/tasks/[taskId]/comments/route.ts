@@ -5,23 +5,24 @@ import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { sendMail, emailEnabled } from "@/lib/email";
 import { findMentionedMembers } from "@/lib/mentions";
+import { createNotifications, notifyTaskCollaborators } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
-// Email anyone @mentioned in a new comment (best-effort; never blocks/breaks
-// the comment if email is unconfigured or fails). Not PHI-hardened.
+// Notify anyone @mentioned in a new comment — in-app always, email when
+// configured. Best-effort; never blocks/breaks the comment. Returns the
+// mentioned user ids so the collaborator broadcast can skip them.
 async function notifyMentions(args: {
   taskId: string;
   commentBody: string;
   authorId: string;
   authorName: string;
-}) {
+}): Promise<string[]> {
   try {
-    if (!emailEnabled()) return;
     const task = await prisma.task.findUnique({
       where: { id: args.taskId },
-      select: { projectId: true, titleEnc: true },
+      select: { projectId: true, titleEnc: true, parentTaskId: true },
     });
-    if (!task) return;
+    if (!task) return [];
 
     const members = await prisma.projectMember.findMany({
       where: { projectId: task.projectId },
@@ -33,7 +34,7 @@ async function notifyMentions(args: {
       members.map((m) => m.user)
     ).filter((u) => u.id !== args.authorId && u.email);
 
-    if (mentioned.length === 0) return;
+    if (mentioned.length === 0) return [];
 
     const taskTitle = (() => {
       try {
@@ -42,6 +43,19 @@ async function notifyMentions(args: {
         return "a task";
       }
     })();
+
+    // In-app notification, deep-linked to the task (parent when a subtask).
+    await createNotifications({
+      recipientIds: mentioned.map((u) => u.id),
+      actorName: args.authorName,
+      type: "MENTION",
+      message: `${args.authorName} mentioned you on "${taskTitle}"`,
+      taskId: task.parentTaskId || args.taskId,
+      projectId: task.projectId,
+    });
+
+    if (!emailEnabled()) return mentioned.map((u) => u.id);
+
     const base = process.env.NEXTAUTH_URL || "";
     const link = `${base}/projects/${task.projectId}?task=${args.taskId}`;
     const snippet =
@@ -65,8 +79,10 @@ async function notifyMentions(args: {
         })
       )
     );
+    return mentioned.map((u) => u.id);
   } catch (err) {
     console.error("notifyMentions error:", err);
+    return [];
   }
 }
 
@@ -111,7 +127,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const comments = await prisma.comment.findMany({
       where: { taskId },
       include: {
-        author: true,
+        // Slim select — a full author row would leak passwordHash to the client.
+        author: { select: { id: true, name: true, email: true, avatarUrl: true } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -159,7 +176,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         authorId: session.user.id,
       },
       include: {
-        author: true,
+        author: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        task: { select: { titleEnc: true } },
       },
     });
 
@@ -172,16 +190,35 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       req,
     });
 
-    // Email anyone @mentioned (best-effort; doesn't block on failure).
-    await notifyMentions({
+    // Notify @mentions (in-app + email), then broadcast the comment to everyone
+    // involved in the task — assignees, subtask assignees, creator — minus the
+    // author and anyone already notified via mention. Best-effort.
+    const authorName = comment.author?.name || session.user.name || "Someone";
+    const mentionedIds = await notifyMentions({
       taskId,
       commentBody,
       authorId: session.user.id,
-      authorName: comment.author?.name || session.user.name || "Someone",
+      authorName,
+    });
+    const taskTitle = (() => {
+      try {
+        return comment.task?.titleEnc ? decrypt(comment.task.titleEnc) : "";
+      } catch {
+        return "";
+      }
+    })();
+    await notifyTaskCollaborators({
+      taskId,
+      actorId: session.user.id,
+      actorName: authorName,
+      type: "COMMENT",
+      message: `${authorName} commented on ${taskTitle ? `"${taskTitle}"` : "a task you're on"}`,
+      skip: mentionedIds,
     });
 
+    const { task: _task, ...commentRest } = comment;
     const decrypted = {
-      ...comment,
+      ...commentRest,
       body: decrypt(comment.bodyEnc),
     };
 

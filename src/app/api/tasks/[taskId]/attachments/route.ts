@@ -148,7 +148,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       where: { id: attachmentId },
     });
 
-    if (!attachment) {
+    // Must belong to THIS task — otherwise membership in any one project lets
+    // you delete attachments from any other project's tasks.
+    if (!attachment || attachment.taskId !== taskId) {
       return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
     }
 

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeUserSelect } from "@/lib/safeUser";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { NextRequest, NextResponse } from "next/server";
@@ -68,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const updated = await prisma.comment.update({
       where: { id: commentId },
       data: { bodyEnc: encrypt(newBody) },
-      include: { author: true },
+      include: { author: { select: safeUserSelect } },
     });
 
     await writeAuditLog({

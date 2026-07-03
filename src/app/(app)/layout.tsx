@@ -7,6 +7,7 @@ import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 export default async function AppLayout({
   children,
@@ -44,6 +45,7 @@ export default async function AppLayout({
               <GlobalSearch />
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
+              <NotificationBell />
               <span className="text-sm text-gray-600">
                 {session.user.email}
                 {session.user.role === "ADMIN" && (

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { safeUserSelect } from "@/lib/safeUser";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -87,8 +88,8 @@ export async function POST(req: NextRequest) {
         order: typeof body.order === "number" ? body.order : 0,
       },
       include: {
-        assignee: true,
-        createdBy: true,
+        assignee: { select: safeUserSelect },
+        createdBy: { select: safeUserSelect },
       },
     });
 
