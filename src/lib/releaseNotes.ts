@@ -20,6 +20,54 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.1",
+    date: "2026-07-03",
+    title: "Feedback round 2 — attachments, speed, notifications & more",
+    items: [
+      {
+        type: "fixed",
+        title: "Attachments now open when you click them",
+        detail:
+          "Uploaded files (PDFs, images…) used to show a Google “request access” page. Clicking a file now opens it right in your browser, securely through the app — no Google account needed. Every view is audit-logged.",
+        requestedBy: "Meilinda",
+      },
+      {
+        type: "improved",
+        title: "Much faster loading for admins",
+        detail:
+          "Opening the project list used to download every task in the company behind the scenes. It now loads just the counts, and boards send far less data — pages open noticeably faster, especially on admin accounts.",
+        requestedBy: "Gabriel",
+      },
+      {
+        type: "new",
+        title: "In-app notifications with one-click deep links",
+        detail:
+          "The new 🔔 bell in the top bar shows updates on tasks you're involved in — comments, status changes, board moves, @mentions, and new assignments. Everyone on the task (assignee, subtask assignees, creator) is notified, and clicking a notification takes you straight to the task. No more searching.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "new",
+        title: "Formatting in task descriptions (bold, lists…)",
+        detail:
+          "Task and subtask descriptions now support simple formatting: **bold**, *italic*, bullet and numbered lists, headings and links — with a Write/Preview toggle so you can check how it looks.",
+        requestedBy: "Gabriel",
+      },
+      {
+        type: "improved",
+        title: "AI matches transcript names to real teammates",
+        detail:
+          "Meeting → Tasks now pre-fills each task's assignee: Claude matches names as heard in the transcript (even misheard ones like “kadel”) to the real team roster, and shows what it heard so you can double-check. Every task in the draft is also fully editable now — description, subtasks, and a “Fix with AI” box for bigger corrections in your own words.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "Security hardening under the hood",
+        detail:
+          "Tighter access checks on attachments and member lists, no more sensitive fields in API responses, a corrected audit trail for project changes, and safer production defaults.",
+      },
+    ],
+  },
+  {
     version: "1.0",
     date: "2026-07-01",
     title: "Feedback round 1 — everything you asked for",
