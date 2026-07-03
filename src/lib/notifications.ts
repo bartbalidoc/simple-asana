@@ -9,8 +9,8 @@ export type NotificationType = "COMMENT" | "MENTION" | "STATUS" | "ASSIGNED" | "
 
 /**
  * Everyone "involved" in a task: the task's assignee, its subtasks' assignees,
- * its creator — and, when the task is itself a subtask, the same set for its
- * parent. The actor is always excluded.
+ * its creator, anyone who has commented on it — and, when the task is itself a
+ * subtask, the same set for its parent. The actor is always excluded.
  */
 export async function taskCollaboratorIds(taskId: string, excludeUserId?: string): Promise<{
   recipientIds: string[];
@@ -36,7 +36,15 @@ export async function taskCollaboratorIds(taskId: string, excludeUserId?: string
 
   const subtasks = await prisma.task.findMany({
     where: { parentTaskId: anchorTaskId },
-    select: { assigneeId: true },
+    select: { id: true, assigneeId: true },
+  });
+
+  // Commenters are involved too — e.g. an admin who assigned the task and
+  // follows up in the comments should hear about later changes.
+  const commenters = await prisma.comment.findMany({
+    where: { taskId: { in: [anchorTaskId, ...subtasks.map((s) => s.id)] } },
+    select: { authorId: true },
+    distinct: ["authorId"],
   });
 
   const ids = new Set<string>();
@@ -46,6 +54,7 @@ export async function taskCollaboratorIds(taskId: string, excludeUserId?: string
     task.assigneeId,
     task.createdById,
     ...subtasks.map((s) => s.assigneeId),
+    ...commenters.map((c) => c.authorId),
   ]) {
     if (id) ids.add(id);
   }
