@@ -143,8 +143,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    console.error("POST /api/projects error:", errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("POST /api/projects error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

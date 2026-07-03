@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      defaultPassword: DEFAULT_PASSWORD,
       results,
     });
   } catch (error) {

@@ -24,4 +24,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma@5.7.0 db push --skip-generate --accept-data-loss && node server.js"]
+# No --accept-data-loss: additive schema changes still apply cleanly, but a
+# destructive one (dropped/renamed column) now fails the boot loudly instead of
+# silently deleting production data.
+CMD ["sh", "-c", "npx prisma@5.7.0 db push --skip-generate && node server.js"]

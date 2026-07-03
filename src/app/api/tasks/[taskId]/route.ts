@@ -437,11 +437,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json(decrypted);
   } catch (error) {
     console.error("PATCH /api/tasks/[taskId] error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: "Internal server error", details: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

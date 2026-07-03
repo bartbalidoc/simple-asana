@@ -77,7 +77,6 @@ Respond ONLY with valid JSON (no markdown, no explanation, just JSON):
   "automationOpportunity": "Short note on what to automate, or empty string"
 }`;
 
-    console.log("Sending prompt to Claude:", prompt.substring(0, 200) + "...");
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -119,7 +118,6 @@ Respond ONLY with valid JSON (no markdown, no explanation, just JSON):
       throw new Error("No content from AI");
     }
 
-    console.log("AI response:", content);
 
     // Parse the JSON response
     const parsed = JSON.parse(content);

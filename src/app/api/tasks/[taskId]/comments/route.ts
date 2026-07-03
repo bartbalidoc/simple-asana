@@ -62,6 +62,10 @@ async function notifyMentions(args: {
       args.commentBody.length > 400
         ? args.commentBody.slice(0, 400) + "…"
         : args.commentBody;
+    // Escape EVERYTHING interpolated into the HTML body — a task titled
+    // "<img onerror=…>" must not execute in a teammate's inbox.
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     await Promise.allSettled(
       mentioned.map((u) =>
@@ -69,11 +73,8 @@ async function notifyMentions(args: {
           to: u.email as string,
           subject: `${args.authorName} mentioned you on "${taskTitle}"`,
           text: `${args.authorName} mentioned you in a comment on "${taskTitle}":\n\n"${snippet}"\n\nOpen the task:\n${link}\n\n— BaliDoc`,
-          html: `<p><strong>${args.authorName}</strong> mentioned you in a comment on <strong>${taskTitle}</strong>:</p>
-<blockquote style="border-left:3px solid #e11d48;margin:0;padding:6px 12px;color:#374151">${snippet
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/\n/g, "<br>")}</blockquote>
+          html: `<p><strong>${esc(args.authorName)}</strong> mentioned you in a comment on <strong>${esc(taskTitle)}</strong>:</p>
+<blockquote style="border-left:3px solid #e11d48;margin:0;padding:6px 12px;color:#374151">${esc(snippet).replace(/\n/g, "<br>")}</blockquote>
 <p><a href="${link}" style="color:#e11d48">Open the task →</a></p>
 <p style="color:#9ca3af;font-size:12px">— BaliDoc</p>`,
         })

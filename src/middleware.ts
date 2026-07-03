@@ -8,23 +8,21 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        const isAuthPage = req.nextUrl.pathname.startsWith("/login");
+        const { pathname } = req.nextUrl;
 
-        if (isAuthPage) {
-          return !token;
+        // Public pages. (Route groups like "(app)" never appear in URLs, so the
+        // old startsWith("/(app)") check protected nothing.)
+        if (pathname === "/" || pathname.startsWith("/login")) {
+          return true;
         }
 
-        const isProtected = req.nextUrl.pathname.startsWith("/(app)");
-        if (isProtected) {
-          return !!token;
-        }
-
-        return true;
+        // Everything else requires a session.
+        return !!token;
       },
     },
   }
 );
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)"],
 };

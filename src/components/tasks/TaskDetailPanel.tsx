@@ -246,11 +246,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
     try {
       setCreatingSubtask(true);
-      console.log("Creating subtask with:", {
-        projectId: task.projectId,
-        title: newSubtaskTitle,
-        parentTaskId: taskId,
-      });
 
       const response = await fetch("/api/tasks", {
         method: "POST",
@@ -264,13 +259,11 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         }),
       });
 
-      console.log("Subtask creation response:", response.status);
       if (!response.ok) {
         const errText = await response.text();
         throw new Error(`Failed to create subtask: ${errText}`);
       }
       const newSubtask = await response.json();
-      console.log("Created subtask:", newSubtask);
 
       setTask({
         ...task,
@@ -287,7 +280,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   const handleToggleSubtaskStatus = async (subtaskId: string, currentStatus: string) => {
     const newStatus = currentStatus === "DONE" ? "TODO" : "DONE";
-    console.log("Toggling subtask", subtaskId, "from", currentStatus, "to", newStatus);
 
     try {
       const response = await fetch(`/api/tasks/${subtaskId}`, {
@@ -296,7 +288,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         body: JSON.stringify({ status: newStatus }),
       });
 
-      console.log("Subtask update response:", response.status);
       if (!response.ok) throw new Error("Failed to update subtask");
 
       setTask({
@@ -305,7 +296,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           s.id === subtaskId ? { ...s, status: newStatus } : s
         ),
       });
-      console.log("Subtask updated in UI");
     } catch (err) {
       console.error("Subtask error:", err);
       setError(err instanceof Error ? err.message : "Failed to update subtask");
@@ -852,14 +842,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
               const newStatus = e.target.value;
               setUpdates({ ...updates, status: newStatus });
               setHasChanges(true);
-              console.log("Updating status to:", newStatus);
               try {
                 const response = await fetch(`/api/tasks/${taskId}`, {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ status: newStatus }),
                 });
-                console.log("Status update response:", response.status);
                 if (!response.ok) {
                   const errorData = await response.json();
                   throw new Error(errorData.details || "Failed to update status");
@@ -873,7 +861,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                 }));
                 setUpdates({});
                 setHasChanges(false);
-                console.log("Status updated, calling onTaskUpdated");
                 onTaskUpdated?.();
               } catch (err) {
                 console.error("Status update error:", err);

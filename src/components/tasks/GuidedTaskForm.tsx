@@ -35,7 +35,6 @@ export function GuidedTaskForm({
       setAiLoading(true);
       setAiError(null);
 
-      console.log(`Enhancing ${field}:`, text);
 
       const response = await fetch("/api/ai/enhance-description", {
         method: "POST",
@@ -46,7 +45,6 @@ export function GuidedTaskForm({
         }),
       });
 
-      console.log(`AI response status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -55,7 +53,6 @@ export function GuidedTaskForm({
       }
 
       const data = await response.json();
-      console.log(`AI returned:`, data.enhanced);
 
       if (!data.enhanced || data.enhanced === text) {
         setAiError("Text is already polished!");
@@ -119,7 +116,6 @@ export function GuidedTaskForm({
 
       if (!response.ok) throw new Error("Failed to create task");
 
-      console.log("Task created successfully, calling onTaskCreated");
       setTitle("");
       setDescription("");
       setProblem("");
@@ -130,7 +126,6 @@ export function GuidedTaskForm({
 
       // Wait a moment then trigger refresh
       setTimeout(() => {
-        console.log("Calling onTaskCreated callback");
         onTaskCreated?.();
       }, 500);
     } catch (err) {

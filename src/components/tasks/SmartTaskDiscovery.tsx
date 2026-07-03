@@ -148,7 +148,6 @@ export function SmartTaskDiscovery({
       // Use the user's explicit task name as the title (Q1), not an AI guess.
       const title = answers[1].trim();
 
-      console.log("Generated task:", { title, description, subtasks });
 
       // Create the task. Fall back to the user's raw automation answer if the
       // AI didn't return a distilled one.
@@ -184,7 +183,6 @@ export function SmartTaskDiscovery({
         }
       }
 
-      console.log("Task created with subtasks");
       onTaskCreated?.();
     } catch (err) {
       console.error("Task creation error:", err);

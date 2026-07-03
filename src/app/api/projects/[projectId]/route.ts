@@ -143,7 +143,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     await writeAuditLog({
       actorId: session.user.id,
-      action: "PROJECT_CREATED",
+      action: "PROJECT_UPDATED",
       resource: "project",
       resourceId: project.id,
       metadata: { updated: Object.keys(body) },
@@ -180,10 +180,12 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     await writeAuditLog({
       actorId: session.user.id,
-      action: "PROJECT_ARCHIVED",
+      // A cascade delete destroys the project's tasks/comments/attachments — the
+      // audit trail must say so plainly, not "archived".
+      action: "PROJECT_DELETED",
       resource: "project",
       resourceId: projectId,
-      metadata: { name: project.name, deleted: true },
+      metadata: { name: project.name },
       req,
     });
 
@@ -193,7 +195,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
     console.error("DELETE /api/projects/[projectId] error:", error);
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
