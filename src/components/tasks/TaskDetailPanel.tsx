@@ -14,6 +14,7 @@ import { DistributeControl } from "./DistributeControl";
 import { Button } from "@/components/ui/Button";
 import { TrashIcon, GripIcon, PlusIcon, CloseIcon } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/Toast";
+import { Markdown } from "@/components/ui/Markdown";
 import { TASK_TEMPLATES } from "@/lib/taskTemplates";
 
 interface Subtask {
@@ -39,6 +40,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updates, setUpdates] = useState<any>({});
+  const [descPreview, setDescPreview] = useState(false);
   const [template, setTemplate] = useState("general");
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [creatingSubtask, setCreatingSubtask] = useState(false);
@@ -597,19 +599,53 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
         {currentTemplate.fields.description && (
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Description
-            </label>
-            <textarea
-              value={updates.description !== undefined ? updates.description : task.description || ""}
-              onChange={(e) => {
-                setUpdates({ ...updates, description: e.target.value });
-                setHasChanges(true);
-              }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
-              rows={3}
-              placeholder="Add a description..."
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-gray-900">Description</label>
+              {/* Markdown write/preview toggle (feedback: lists, bold, italic…) */}
+              <div className="flex rounded-md border border-gray-200 overflow-hidden text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setDescPreview(false)}
+                  className={`px-2 py-0.5 ${!descPreview ? "bg-gray-800 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                >
+                  Write
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDescPreview(true)}
+                  className={`px-2 py-0.5 ${descPreview ? "bg-gray-800 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                >
+                  Preview
+                </button>
+              </div>
+            </div>
+            {descPreview ? (
+              <div className="w-full border border-gray-200 rounded p-2 bg-gray-50/50 min-h-[76px]">
+                {(updates.description !== undefined ? updates.description : task.description || "").trim() ? (
+                  <Markdown
+                    text={updates.description !== undefined ? updates.description : task.description || ""}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-400">Nothing to preview.</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={updates.description !== undefined ? updates.description : task.description || ""}
+                  onChange={(e) => {
+                    setUpdates({ ...updates, description: e.target.value });
+                    setHasChanges(true);
+                  }}
+                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
+                  rows={5}
+                  placeholder="Add a description..."
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Formatting: **bold** · *italic* · `code` · - bullet list · 1. numbered list · # heading
+                </p>
+              </>
+            )}
           </div>
         )}
 
