@@ -42,12 +42,37 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
     // recreated every render; depending on it caused an infinite refetch loop.
   }, [taskId]);
 
+  // Mirror the server's limits so oversized/odd files fail INSTANTLY with a
+  // clear message instead of uploading for a minute and dying with none.
+  const MAX_BYTES = 15 * 1024 * 1024;
+  const ALLOWED_EXTENSIONS = new Set([
+    "pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "svg",
+    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods",
+    "csv", "txt", "md", "rtf", "zip", "mp4", "mov", "mp3", "m4a", "wav",
+  ]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
     setError(null);
+    if (file.size > MAX_BYTES) {
+      setError(
+        `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — the maximum is 15 MB.`
+      );
+      e.target.value = "";
+      return;
+    }
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      setError(
+        `.${ext || "unknown"} files aren't allowed. Use documents, spreadsheets, images, audio/video or zip.`
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setUploading(true);
 
     try {
       const formData = new FormData();
