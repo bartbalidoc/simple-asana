@@ -134,13 +134,15 @@ export function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+      {/* Phones: one nearly-full-width column per swipe (scroll-snap), bleeding
+          to the screen edge so the next column peeks. sm+: classic flex row. */}
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 items-start snap-x snap-mandatory sm:snap-none -mx-4 px-4 sm:mx-0 sm:px-0 scroll-px-4">
         {columns.map((column) => {
           const list = byColumn(column.id);
           return (
             <div
               key={column.id}
-              className="flex-1 basis-0 min-w-[260px] bg-gray-50/80 rounded-2xl border border-gray-200/70"
+              className="snap-start shrink-0 w-[84vw] max-w-[340px] sm:w-auto sm:max-w-none sm:shrink sm:flex-1 sm:basis-0 sm:min-w-[260px] bg-gray-50/80 rounded-2xl border border-gray-200/70"
             >
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800">

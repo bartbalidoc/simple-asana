@@ -252,7 +252,7 @@ export default function ProjectPage() {
         </div>
       )}
 
-      <div className="mb-6 flex justify-between items-center gap-3">
+      <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
         <textarea
           rows={1}
           value={project.name}
@@ -286,7 +286,7 @@ export default function ProjectPage() {
           className="flex-1 min-w-0 mr-4 text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-red-500 focus:outline-none resize-none overflow-hidden break-words"
           aria-label="Project name"
         />
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex flex-wrap gap-2 flex-shrink-0">
           <Button
             active={showNewTaskForm}
             onClick={() => {

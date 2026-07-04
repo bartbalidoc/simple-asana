@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.2",
+    date: "2026-07-04",
+    title: "BaliDoc on your phone",
+    items: [
+      {
+        type: "new",
+        title: "The whole app now works on small screens",
+        detail:
+          "Open BaliDoc on your phone and everything fits: the menu tucks into a drawer behind the ☰ button (your account and sign-out live there too), boards swipe one column at a time with the next column peeking in, and tasks open as a full-screen panel. Search and the 🔔 bell stay in the top bar.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.1",
     date: "2026-07-03",
     title: "Feedback round 2 — attachments, speed, notifications & more",

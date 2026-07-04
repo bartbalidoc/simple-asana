@@ -440,7 +440,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (loading) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-6 flex items-center justify-center">
+      <div className="fixed right-0 top-0 h-screen [height:100dvh] w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-4 sm:p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-2" />
           <p className="text-gray-600">Loading...</p>
@@ -451,7 +451,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
   if (error) {
     return (
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-6">
+      <div className="fixed right-0 top-0 h-screen [height:100dvh] w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-4 sm:p-6">
         <div className="text-red-600 mb-4">{error}</div>
         <button onClick={onClose} className="text-blue-600 hover:underline">
           Close
@@ -474,8 +474,8 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         onClick={onClose}
         aria-hidden
       />
-      <div className="fixed right-0 top-0 h-screen w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto z-50">
-      <div className="p-6 border-b sticky top-0 bg-white">
+      <div className="fixed right-0 top-0 h-screen [height:100dvh] w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto z-50">
+      <div className="p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
         {task.parentTaskId && onOpenTask && (
           <button
             onClick={() => onOpenTask(task.parentTaskId)}
@@ -540,7 +540,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {/* Staged (Asana import) — distribute this task into a real project */}
         {isStaged && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
