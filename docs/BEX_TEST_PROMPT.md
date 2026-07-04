@@ -41,3 +41,21 @@ Go to "Meeting → Tasks". Paste a short fake meeting transcript that misspells 
 After the tests above, click the bell again from a different page (e.g. Dashboard). The same notifications should be listed, newest first, with read ones dimmed.
 
 Finally, report anything else odd you noticed (console errors, layout glitches, slow pages) as a bulleted list.
+
+---
+
+# BEX test prompt — release v1.2 mobile (2026-07-04)
+
+You are testing the same app (http://206.189.200.138:3000) on a PHONE-SIZED screen. Use browser device emulation (e.g. iPhone 12, 390×844) if available; otherwise resize the browser window to ~390 px wide. Log in as Bart (session may still be active). Report PASS/FAIL per scenario with a screenshot.
+
+**M1. App shell.** At phone width there must be NO horizontal page scroll anywhere. The left sidebar should be gone; a ☰ button appears in the top bar. Tap ☰ → a drawer slides in from the left with the BaliDoc logo, all nav links, your email, and a Sign out button; the page behind dims. Tap the dark backdrop → drawer closes. Open it again, tap a nav link → it navigates AND the drawer closes.
+
+**M2. Header.** The top bar shows ☰, the search box, and the 🔔 bell — no overlapping or clipped elements. Search still opens results; the bell still opens the notifications panel and it fits on screen.
+
+**M3. Board swipe.** Open a project board. Columns should appear one at a time (~full width) with the next column peeking at the right edge; swiping horizontally snaps column to column. Cards look intact (title, priority chip, avatar). "+ Add task" still works.
+
+**M4. Task panel.** Tap a task card → the detail panel covers the full screen and scrolls; the title area stays visible (sticky) while scrolling. Edit something, save, close. Confirm you land back on the board.
+
+**M5. Pages.** Visit Dashboard, Projects, and Meeting → Tasks at phone width: cards stack in one column, nothing overflows sideways, buttons wrap onto new lines instead of being cut off. On an admin page with a table (Activity), the table scrolls sideways inside its own box — the page itself doesn't.
+
+**M6. Desktop regression.** Set the viewport back to desktop size (≥1280 px): classic fixed sidebar returns, no ☰ button, sign-out visible in the header, board shows all columns side by side as before.
