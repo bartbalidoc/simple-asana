@@ -6,11 +6,14 @@ import { encrypt, decrypt } from "@/lib/encryption";
 import { sendMail, emailEnabled } from "@/lib/email";
 import { findMentionedMembers } from "@/lib/mentions";
 import { createNotifications, notifyTaskCollaborators } from "@/lib/notifications";
+import { canViewTask } from "@/lib/authz";
 import { NextRequest, NextResponse } from "next/server";
 
 // Notify anyone @mentioned in a new comment — in-app always, email when
-// configured. Best-effort; never blocks/breaks the comment. Returns the
-// mentioned user ids so the collaborator broadcast can skip them.
+// configured. Mentioning someone who is NOT on the project makes them a task
+// GUEST (feedback: "tag people that are not in the project"): they get access
+// to this one task only, audit-logged. Best-effort; never blocks/breaks the
+// comment. Returns the mentioned user ids so the broadcast can skip them.
 async function notifyMentions(args: {
   taskId: string;
   commentBody: string;
@@ -24,15 +27,20 @@ async function notifyMentions(args: {
     });
     if (!task) return [];
 
-    const members = await prisma.projectMember.findMany({
-      where: { projectId: task.projectId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+    // Match against the whole active team, not just project members.
+    const team = await prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, email: true },
     });
+    const memberRows = await prisma.projectMember.findMany({
+      where: { projectId: task.projectId },
+      select: { userId: true },
+    });
+    const memberIds = new Set(memberRows.map((m) => m.userId));
 
-    const mentioned = findMentionedMembers(
-      args.commentBody,
-      members.map((m) => m.user)
-    ).filter((u) => u.id !== args.authorId && u.email);
+    const mentioned = findMentionedMembers(args.commentBody, team).filter(
+      (u) => u.id !== args.authorId && u.email
+    );
 
     if (mentioned.length === 0) return [];
 
@@ -44,13 +52,32 @@ async function notifyMentions(args: {
       }
     })();
 
+    // Non-members become guests of this task (anchored on the parent so a
+    // subtask mention also opens the panel they'll land on).
+    const anchorTaskId = task.parentTaskId || args.taskId;
+    const outsiders = mentioned.filter((u) => !memberIds.has(u.id));
+    for (const u of outsiders) {
+      await prisma.taskGuest.upsert({
+        where: { taskId_userId: { taskId: anchorTaskId, userId: u.id } },
+        update: {},
+        create: { taskId: anchorTaskId, userId: u.id, addedById: args.authorId },
+      });
+      await writeAuditLog({
+        actorId: args.authorId,
+        action: "TASK_UPDATED",
+        resource: "task",
+        resourceId: anchorTaskId,
+        metadata: { guestAdded: u.id, via: "mention" },
+      });
+    }
+
     // In-app notification, deep-linked to the task (parent when a subtask).
     await createNotifications({
       recipientIds: mentioned.map((u) => u.id),
       actorName: args.authorName,
       type: "MENTION",
       message: `${args.authorName} mentioned you on "${taskTitle}"`,
-      taskId: task.parentTaskId || args.taskId,
+      taskId: anchorTaskId,
       projectId: task.projectId,
     });
 
@@ -93,23 +120,6 @@ interface RouteParams {
   };
 }
 
-async function checkTaskAccess(taskId: string, userId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    include: {
-      project: {
-        include: {
-          members: {
-            where: { userId },
-          },
-        },
-      },
-    },
-  });
-
-  return !!task?.project.members.length;
-}
-
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
@@ -119,7 +129,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -155,7 +165,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

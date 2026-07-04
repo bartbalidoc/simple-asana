@@ -59,3 +59,19 @@ You are testing the same app (http://206.189.200.138:3000) on a PHONE-SIZED scre
 **M5. Pages.** Visit Dashboard, Projects, and Meeting → Tasks at phone width: cards stack in one column, nothing overflows sideways, buttons wrap onto new lines instead of being cut off. On an admin page with a table (Activity), the table scrolls sideways inside its own box — the page itself doesn't.
 
 **M6. Desktop regression.** Set the viewport back to desktop size (≥1280 px): classic fixed sidebar returns, no ☰ button, sign-out visible in the header, board shows all columns side by side as before.
+
+---
+
+# BEX test prompt — release v1.3 task guests (2026-07-04)
+
+Same app (http://206.189.200.638:3000 — correction: http://206.189.200.138:3000), desktop viewport, logged in as Bart (ADMIN).
+
+**G1. Guests row.** Open a task on a board that some teammate (e.g. Meilinda) is NOT a member of (ask the operator which board if unsure). In the task panel below "Assigned To" there is a "Guests" row. Use "+ Add guest" to add that teammate. Expected: a purple chip with their name appears and a toast confirms.
+
+**G2. Mention an outsider.** On another task in the same project, write a comment @mentioning a teammate who is NOT on the project (the @ dropdown should now offer the whole team). Post it. Expected: the comment posts normally; if you reopen the task, the mentioned person now appears in the Guests row automatically.
+
+**G3. Members unchanged.** Open the board's Members list — the guests from G1/G2 must NOT have become project members, and the project must not appear in their sidebar (verify from their account if available).
+
+**G4. Guest chip removal.** Remove a guest with the ✕ on their chip. Expected: chip disappears with a toast.
+
+**G5. (needs the guest's account, optional)** As the guest: the Dashboard shows the task under My Tasks with a purple "Guest" badge; clicking it opens a standalone task view at /tasks/… with a purple "you're a guest" note; commenting works; editing the title/status does not (server rejects it); the Projects page still does NOT list that project.

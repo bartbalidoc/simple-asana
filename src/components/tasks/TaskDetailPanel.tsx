@@ -46,14 +46,18 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const [creatingSubtask, setCreatingSubtask] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
-  // Only people on this task's project can be @mentioned — a mention should
-  // never silently grant a non-member access to PHI on the task.
+  // This project's members — used to tell guests apart from members in the UI.
+  // @mentions now match the WHOLE team: mentioning a non-member deliberately
+  // adds them as a guest of this task (audit-logged, single-task access).
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   // Real (non-staging) projects to distribute staged tasks into.
   const [destProjects, setDestProjects] = useState<any[]>([]);
   // Projects this user can MOVE the task into (feedback #4).
   const [moveProjects, setMoveProjects] = useState<any[]>([]);
   const [moving, setMoving] = useState(false);
+  // Task guests: teammates invited to just this task (no project access).
+  const [guests, setGuests] = useState<any[]>([]);
+  const [addingGuest, setAddingGuest] = useState(false);
   const isStaged = !!task?.project?.isStaging;
 
   useEffect(() => {
@@ -121,6 +125,14 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         } catch {
           // Non-fatal: the move dropdown just won't list other boards.
         }
+
+        // Task guests (people invited to just this task).
+        try {
+          const gr = await fetch(`/api/tasks/${taskId}/guests`);
+          if (gr.ok) setGuests(await gr.json());
+        } catch {
+          // Non-fatal: the guests row just stays empty.
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load task");
       } finally {
@@ -130,6 +142,44 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
     fetchTask();
   }, [taskId]);
+
+  const handleAddGuest = async (userId: string) => {
+    if (!userId) return;
+    setAddingGuest(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/guests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't add guest");
+      setGuests((prev) =>
+        prev.some((g) => g.userId === data.userId) ? prev : [...prev, data]
+      );
+      toast(`${data.user?.name || "Guest"} can now see this task`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't add guest", "error");
+    } finally {
+      setAddingGuest(false);
+    }
+  };
+
+  const handleRemoveGuest = async (userId: string, name: string) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/guests?userId=${userId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Couldn't remove guest");
+      }
+      setGuests((prev) => prev.filter((g) => g.userId !== userId));
+      toast(`${name} no longer sees this task`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't remove guest", "error");
+    }
+  };
 
   const handleAssigneeChange = async (assigneeId: string | null) => {
     try {
@@ -476,6 +526,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       />
       <div className="fixed right-0 top-0 h-screen [height:100dvh] w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 overflow-y-auto z-50">
       <div className="p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+        {task.accessLevel === "GUEST" && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-800 text-xs">
+            You&apos;re a guest on this task — you can read everything and comment,
+            but not edit the task itself.
+          </div>
+        )}
         {task.parentTaskId && onOpenTask && (
           <button
             onClick={() => onOpenTask(task.parentTaskId)}
@@ -833,6 +889,54 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </select>
         </div>
 
+        {/* Guests — invite anyone to just this task, without project access.
+            Hidden on staged tasks (admin-only imports). */}
+        {!isStaged && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Guests</label>
+            <p className="text-xs text-gray-400 mb-2">
+              Guests see and comment on this task only — not the rest of the board.
+              @mentioning someone outside the project also adds them here.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {guests.map((g) => (
+                <span
+                  key={g.userId}
+                  className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full pl-2.5 pr-1 py-1"
+                >
+                  {g.user?.name || "Unknown"}
+                  <button
+                    onClick={() => handleRemoveGuest(g.userId, g.user?.name || "Guest")}
+                    className="h-4 w-4 rounded-full hover:bg-purple-200 text-purple-500 flex items-center justify-center"
+                    title="Remove guest"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+              <select
+                value=""
+                disabled={addingGuest}
+                onChange={(e) => handleAddGuest(e.target.value)}
+                className="text-xs border border-dashed border-gray-300 rounded-full px-2 py-1 text-gray-500 focus:outline-none focus:border-red-500 bg-transparent"
+              >
+                <option value="">{addingGuest ? "Adding…" : "+ Add guest"}</option>
+                {members
+                  .filter(
+                    (u) =>
+                      !guests.some((g) => g.userId === u.id) &&
+                      !projectMembers.some((m) => m.id === u.id)
+                  )
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Status */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">Status</label>
@@ -1064,12 +1168,12 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           <CommentList
             taskId={taskId}
             comments={task.comments}
-            members={projectMembers}
+            members={members.length ? members : projectMembers}
             onChanged={handleCommentAdded}
           />
           <CommentForm
             taskId={taskId}
-            members={projectMembers}
+            members={members.length ? members : projectMembers}
             onCommentAdded={handleCommentAdded}
           />
         </div>

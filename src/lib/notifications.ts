@@ -47,6 +47,12 @@ export async function taskCollaboratorIds(taskId: string, excludeUserId?: string
     distinct: ["authorId"],
   });
 
+  // Task guests follow the task like anyone else on it.
+  const guests = await prisma.taskGuest.findMany({
+    where: { taskId: anchorTaskId },
+    select: { userId: true },
+  });
+
   const ids = new Set<string>();
   for (const id of [
     anchor.assigneeId,
@@ -55,6 +61,7 @@ export async function taskCollaboratorIds(taskId: string, excludeUserId?: string
     task.createdById,
     ...subtasks.map((s) => s.assigneeId),
     ...commenters.map((c) => c.authorId),
+    ...guests.map((g) => g.userId),
   ]) {
     if (id) ids.add(id);
   }

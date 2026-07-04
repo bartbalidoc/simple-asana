@@ -5,29 +5,13 @@ import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { safeUserSelect } from "@/lib/safeUser";
 import { createNotifications, notifyTaskCollaborators } from "@/lib/notifications";
+import { taskAccessLevel, canEditTask } from "@/lib/authz";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
   params: {
     taskId: string;
   };
-}
-
-async function checkTaskAccess(taskId: string, userId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    include: {
-      project: {
-        include: {
-          members: {
-            where: { userId },
-          },
-        },
-      },
-    },
-  });
-
-  return !!task?.project.members.length;
 }
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
@@ -39,11 +23,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess =
-      session.user.role === "ADMIN" ||
-      (await checkTaskAccess(taskId, session.user.id));
+    const accessLevel = await taskAccessLevel(taskId, session.user.id, session.user.role);
 
-    if (!hasAccess) {
+    if (!accessLevel) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -69,6 +51,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const decrypted = {
       ...task,
+      // Lets the panel adapt for guests (view + comment, no editing).
+      accessLevel,
       title: decrypt(task.titleEnc),
       description: task.descriptionEnc ? decrypt(task.descriptionEnc) : null,
       goal: task.goalEnc ? decrypt(task.goalEnc) : null,
@@ -119,9 +103,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess =
-      session.user.role === "ADMIN" ||
-      (await checkTaskAccess(taskId, session.user.id));
+    // Guests may view/comment but not edit or delete the task.
+    const hasAccess = await canEditTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -450,9 +433,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess =
-      session.user.role === "ADMIN" ||
-      (await checkTaskAccess(taskId, session.user.id));
+    // Guests may view/comment but not edit or delete the task.
+    const hasAccess = await canEditTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.3",
+    date: "2026-07-04",
+    title: "Task guests — pull anyone into one task",
+    items: [
+      {
+        type: "new",
+        title: "Invite anyone to a single task, without sharing the board",
+        detail:
+          "Need a review from someone outside the project? @mention them in a comment (the dropdown now shows the whole team) or use the new Guests row on the task. They get a notification, can open and comment on that one task — and see nothing else of the project. Guest tasks appear on their Dashboard with a purple Guest badge; guests can be removed anytime and every change is audit-logged.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.2",
     date: "2026-07-04",
     title: "BaliDoc on your phone",

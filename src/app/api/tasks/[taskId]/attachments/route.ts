@@ -3,29 +3,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { uploadFileToDrive, deleteFileFromDrive } from "@/lib/drive";
+import { canViewTask, canEditTask } from "@/lib/authz";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RouteParams {
   params: {
     taskId: string;
   };
-}
-
-async function checkTaskAccess(taskId: string, userId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    include: {
-      project: {
-        include: {
-          members: {
-            where: { userId },
-          },
-        },
-      },
-    },
-  });
-
-  return !!task?.project.members.length;
 }
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
@@ -37,7 +21,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -64,7 +48,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -161,7 +145,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "attachmentId is required" }, { status: 400 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    // Deleting attachments is for project members/admins, not guests.
+    const hasAccess = await canEditTask(taskId, session.user.id, session.user.role);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

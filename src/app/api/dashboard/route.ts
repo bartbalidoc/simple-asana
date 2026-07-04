@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const isAdmin = session.user.role === "ADMIN";
 
-    const [projects, tasks] = await Promise.all([
+    const [projects, tasks, guestRows] = await Promise.all([
       prisma.project.findMany({
         // Exclude hidden staging (Asana import) projects from everyone's dashboard.
         where: isAdmin
@@ -44,6 +44,18 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { dueDate: "asc" },
       }),
+      // Tasks this user was invited to as a GUEST (one task, no project access).
+      prisma.taskGuest.findMany({
+        where: { userId: session.user.id, task: { project: { isStaging: false } } },
+        include: {
+          task: {
+            include: {
+              project: { select: { id: true, name: true } },
+              subtasks: { select: { status: true } },
+            },
+          },
+        },
+      }),
     ]);
 
     const projectSummaries = projects.map((p) => ({
@@ -57,7 +69,7 @@ export async function GET(req: NextRequest) {
       done: p.tasks.filter((t) => t.status === "DONE").length,
     }));
 
-    const taskSummaries = tasks.map((t) => ({
+    const summarize = (t: (typeof tasks)[number], guest: boolean) => ({
       id: t.id,
       title: decrypt(t.titleEnc),
       status: t.status,
@@ -67,7 +79,15 @@ export async function GET(req: NextRequest) {
       projectName: t.project?.name,
       subtotal: t.subtasks.length,
       subdone: t.subtasks.filter((s) => s.status === "DONE").length,
-    }));
+      guest,
+    });
+    const assignedIds = new Set(tasks.map((t) => t.id));
+    const taskSummaries = [
+      ...tasks.map((t) => summarize(t, false)),
+      ...guestRows
+        .filter((g) => !assignedIds.has(g.task.id))
+        .map((g) => summarize(g.task as (typeof tasks)[number], true)),
+    ];
 
     return NextResponse.json({
       isAdmin,

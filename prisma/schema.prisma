@@ -26,6 +26,25 @@ model User {
   auditLogs          AuditLog[]
   feedback           Feedback[]
   notifications      Notification[]
+  guestTasks         TaskGuest[]     @relation("GuestUser")
+  guestsAdded        TaskGuest[]     @relation("GuestAddedBy")
+}
+
+// Task-level guest access (feedback: "tag people that are not in the project").
+// A guest can open, comment on and follow ONE task without seeing the rest of
+// the project. Created by @mentioning a non-member or via the task's Guests row.
+model TaskGuest {
+  id        String   @id @default(cuid())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  user      User     @relation("GuestUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  addedBy   User?    @relation("GuestAddedBy", fields: [addedById], references: [id])
+  addedById String?
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }
 
 // In-app notifications (feedback: multi-assignee broadcast + deep-linking).
@@ -134,6 +153,7 @@ model Task {
 
   comments       Comment[]
   attachments    Attachment[]
+  guests         TaskGuest[]
 }
 
 enum TaskStatus {

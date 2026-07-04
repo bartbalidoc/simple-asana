@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canViewTask } from "@/lib/authz";
 import { safeUserSelect } from "@/lib/safeUser";
 import { writeAuditLog } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
@@ -13,23 +14,6 @@ interface RouteParams {
   };
 }
 
-async function checkTaskAccess(taskId: string, userId: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    include: {
-      project: {
-        include: {
-          members: {
-            where: { userId },
-          },
-        },
-      },
-    },
-  });
-
-  return !!task?.project.members.length;
-}
-
 // Edit an existing comment. Only the comment's author or an admin may edit.
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
@@ -40,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -98,7 +82,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const hasAccess = await checkTaskAccess(taskId, session.user.id);
+    const hasAccess = await canViewTask(taskId, session.user.id, session.user.role);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

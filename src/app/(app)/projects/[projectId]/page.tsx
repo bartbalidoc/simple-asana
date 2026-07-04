@@ -100,7 +100,16 @@ export default function ProjectPage() {
   const fetchProject = useCallback(async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}`);
-      if (!response.ok) throw new Error("Failed to fetch project");
+      if (!response.ok) {
+        // Task guests can open a linked task but not its board — send them to
+        // the standalone task view instead of a dead error page.
+        const taskParam = new URLSearchParams(window.location.search).get("task");
+        if (taskParam && (response.status === 403 || response.status === 404)) {
+          window.location.replace(`/tasks/${taskParam}`);
+          return;
+        }
+        throw new Error("Failed to fetch project");
+      }
       const data = await response.json();
       setProject(data);
       setError(null);

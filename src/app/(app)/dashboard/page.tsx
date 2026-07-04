@@ -13,6 +13,8 @@ interface DashTask {
   projectName?: string;
   subtotal: number;
   subdone: number;
+  // Invited to this one task without project access.
+  guest?: boolean;
 }
 
 interface DashProject {
@@ -200,7 +202,7 @@ export default function DashboardPage() {
                     {groups[key].map((t) => (
                       <Link
                         key={t.id}
-                        href={`/projects/${t.projectId}?task=${t.id}`}
+                        href={t.guest ? `/tasks/${t.id}` : `/projects/${t.projectId}?task=${t.id}`}
                         className="block bg-white rounded-lg border border-gray-200 hover:border-red-300 hover:shadow-sm transition p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -210,6 +212,14 @@ export default function DashboardPage() {
                               <span className="bg-gray-100 px-2 py-0.5 rounded">
                                 {t.projectName}
                               </span>
+                              {t.guest && (
+                                <span
+                                  className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium"
+                                  title="You're a guest on this task — you see only this task, not its project"
+                                >
+                                  Guest
+                                </span>
+                              )}
                               <span>{STATUS_LABELS[t.status] || t.status}</span>
                               {t.subtotal > 0 && (
                                 <span>
