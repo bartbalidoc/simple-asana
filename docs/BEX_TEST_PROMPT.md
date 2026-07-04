@@ -64,7 +64,7 @@ You are testing the same app (http://206.189.200.138:3000) on a PHONE-SIZED scre
 
 # BEX test prompt — release v1.3 task guests (2026-07-04)
 
-Same app (http://206.189.200.638:3000 — correction: http://206.189.200.138:3000), desktop viewport, logged in as Bart (ADMIN).
+Same app (http://206.189.200.138:3000), desktop viewport, logged in as Bart (ADMIN).
 
 **G1. Guests row.** Open a task on a board that some teammate (e.g. Meilinda) is NOT a member of (ask the operator which board if unsure). In the task panel below "Assigned To" there is a "Guests" row. Use "+ Add guest" to add that teammate. Expected: a purple chip with their name appears and a toast confirms.
 
