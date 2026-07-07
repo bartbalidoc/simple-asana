@@ -28,6 +28,44 @@ model User {
   notifications      Notification[]
   guestTasks         TaskGuest[]     @relation("GuestUser")
   guestsAdded        TaskGuest[]     @relation("GuestAddedBy")
+  plannerItems       PlannerItem[]
+  plannerNotes       PlannerNote[]
+}
+
+// Personal Daily Dashboard (Sidney's request, v1.4). Private per-user planner:
+// PRIORITY (max 3/day, optionally linked to a board task) / TODO / CALL items,
+// cycled by a lazy "midnight" rollover — done items are archived, undone ones
+// move to today. Gamification (XP/levels/AI weekly review) is BACKLOG, so keep
+// history queryable (archivedAt, doneAt) for a future phase.
+model PlannerItem {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  quadrant   String // PRIORITY | TODO | CALL
+  titleEnc   String
+  taskId     String? // optional link to a real board task
+  date       String // planning day, "YYYY-MM-DD" in the user's local time
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  rolledOver Boolean   @default(false) // carried from a previous day
+  archivedAt DateTime? // cleared from the board (completed cycle or dismissed)
+  dismissed  Boolean   @default(false)
+  order      Float     @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, date, archivedAt])
+}
+
+// The daily Notes scratchpad — one blob per user per day.
+model PlannerNote {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  date      String // "YYYY-MM-DD"
+  bodyEnc   String
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
 }
 
 // Task-level guest access (feedback: "tag people that are not in the project").

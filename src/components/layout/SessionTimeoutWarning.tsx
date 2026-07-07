@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 
-const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+// 2h idle (was 30 min — forced constant re-logins, feedback from Fafa). The
+// session itself lasts 12h; this timer only signs out genuinely idle tabs.
+const IDLE_TIMEOUT = 2 * 60 * 60 * 1000;
 const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before timeout
 const CHECK_INTERVAL = 1000; // Check every 1 second
 

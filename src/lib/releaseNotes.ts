@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.4",
+    date: "2026-07-06",
+    title: "My Day planner + stay logged in all day",
+    items: [
+      {
+        type: "new",
+        title: "My Day — your private daily planner",
+        detail:
+          "New “My Day” page in the sidebar: plan your day in four areas — up to 3 Priorities (linkable to real board tasks), To-Dos, Calls/Emails, and an autosaving Notes scratchpad. It's completely private to you. Overnight, finished items are archived and unfinished ones follow you to the next day (marked “↻ carried over”, dismissible if no longer relevant). The suggested XP/levels and weekly AI review are on the backlog for a later release.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "improved",
+        title: "Log in once per day, not every 30 minutes",
+        detail:
+          "Sessions now last 12 hours, so one morning login covers your shift. Idle tabs still sign out automatically after 2 hours of no activity (with the usual warning first).",
+        requestedBy: "Fafa",
+      },
+    ],
+  },
+  {
     version: "1.3",
     date: "2026-07-04",
     title: "Task guests — pull anyone into one task",

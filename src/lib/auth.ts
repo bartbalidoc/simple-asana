@@ -146,9 +146,12 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 60,
+    // 12h: one login covers a full workday (feedback: the 30-minute timeout
+    // forced 3+ logins per shift). Idle-tab warning still comes from
+    // SessionTimeoutWarning, which has its own (longer) idle timer.
+    maxAge: 12 * 60 * 60,
   },
   jwt: {
-    maxAge: 30 * 60,
+    maxAge: 12 * 60 * 60,
   },
 };
