@@ -18,6 +18,16 @@ interface CommentListProps {
   onChanged?: () => void;
 }
 
+interface Reaction {
+  id: string;
+  userId: string;
+  emoji: string;
+}
+interface CommentAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+}
 interface Comment {
   id: string;
   bodyEnc?: string;
@@ -30,7 +40,11 @@ interface Comment {
     name: string;
     email: string;
   };
+  reactions?: Reaction[];
+  attachments?: CommentAttachment[];
 }
+
+const REACTION_EMOJI = ["👍", "❤️", "😂", "🎉", "👀", "✅"];
 
 export function CommentList({
   taskId,
@@ -126,6 +140,36 @@ export function CommentList({
     }
   };
 
+  // Toggle an emoji reaction (Gabriel's request) — optimistic update.
+  const toggleReaction = async (comment: Comment, emoji: string) => {
+    if (!currentUserId) return;
+    const mine = (comment.reactions || []).find(
+      (r) => r.userId === currentUserId && r.emoji === emoji
+    );
+    setComments((prev) =>
+      prev.map((c) =>
+        c.id !== comment.id
+          ? c
+          : {
+              ...c,
+              reactions: mine
+                ? (c.reactions || []).filter((r) => r.id !== mine.id)
+                : [
+                    ...(c.reactions || []),
+                    { id: `tmp-${Date.now()}`, userId: currentUserId, emoji },
+                  ],
+            }
+      )
+    );
+    await fetch(`/api/tasks/${taskId}/comments/${comment.id}/reactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    }).catch(() => {});
+  };
+
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
+
   const deleteComment = async (commentId: string) => {
     if (!confirm("Delete this comment? This cannot be undone.")) return;
 
@@ -215,6 +259,94 @@ export function CommentList({
               <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
                 {renderRichText(comment.body || "", mentionNames)}
               </p>
+
+              {/* Comment attachments — images preview inline, others as chips */}
+              {(comment.attachments || []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(comment.attachments || []).map((a) =>
+                    a.mimeType?.startsWith("image/") ? (
+                      <a
+                        key={a.id}
+                        href={`/api/tasks/${taskId}/attachments/${a.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={a.fileName}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/tasks/${taskId}/attachments/${a.id}`}
+                          alt={a.fileName}
+                          className="max-h-40 max-w-[240px] rounded-lg border border-gray-200 object-cover hover:opacity-90 transition"
+                        />
+                      </a>
+                    ) : (
+                      <a
+                        key={a.id}
+                        href={`/api/tasks/${taskId}/attachments/${a.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs text-blue-600 hover:underline"
+                      >
+                        📄 {a.fileName}
+                      </a>
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* Reactions */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                {Object.entries(
+                  (comment.reactions || []).reduce<Record<string, number>>((acc, r) => {
+                    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                    return acc;
+                  }, {})
+                ).map(([emoji, count]) => {
+                  const mine = (comment.reactions || []).some(
+                    (r) => r.userId === currentUserId && r.emoji === emoji
+                  );
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => toggleReaction(comment, emoji)}
+                      className={`inline-flex items-center gap-1 text-xs rounded-full px-1.5 py-0.5 border transition ${
+                        mine
+                          ? "bg-red-50 border-red-200 text-red-700"
+                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                      title={mine ? "Remove your reaction" : "React"}
+                    >
+                      {emoji} {count}
+                    </button>
+                  );
+                })}
+                <div className="relative">
+                  <button
+                    onClick={() => setPickerFor(pickerFor === comment.id ? null : comment.id)}
+                    className="text-xs text-gray-300 hover:text-gray-500 rounded-full border border-transparent hover:border-gray-200 px-1.5 py-0.5 transition"
+                    title="Add reaction"
+                  >
+                    🙂+
+                  </button>
+                  {pickerFor === comment.id && (
+                    <div className="absolute bottom-full left-0 mb-1 flex gap-0.5 bg-white border border-gray-200 rounded-full shadow-lg px-1.5 py-1 z-10">
+                      {REACTION_EMOJI.map((e) => (
+                        <button
+                          key={e}
+                          onClick={() => {
+                            toggleReaction(comment, e);
+                            setPickerFor(null);
+                          }}
+                          className="text-base hover:scale-125 transition-transform px-0.5"
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {canModerate(comment) && (
                 <div className="flex gap-3 mt-1.5">
                   <button

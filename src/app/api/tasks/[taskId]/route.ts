@@ -36,7 +36,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         createdBy: { select: safeUserSelect },
         project: { select: { isStaging: true, name: true } },
         comments: {
-          include: { author: { select: safeUserSelect } },
+          include: {
+            author: { select: safeUserSelect },
+            reactions: true,
+            attachments: true,
+          },
+          // Explicit order — without it Postgres returns heap order, which
+          // scrambles after row updates (Sidney's "jumbled comments" bug).
+          orderBy: { createdAt: "asc" as const },
         },
         attachments: true,
         subtasks: {
@@ -154,6 +161,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       const statusToColumnName: Record<string, string> = {
         TODO: "To Do",
         IN_PROGRESS: "In Progress",
+        BLOCKED: "Blocked",
         IN_REVIEW: "In Review",
         DONE: "Done",
       };
@@ -197,6 +205,29 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.columnId !== undefined) updateData.columnId = body.columnId;
     if (body.order !== undefined) updateData.order = body.order;
     if (body.template !== undefined) updateData.template = body.template;
+
+    // Drag-and-drop moves a card by columnId only — derive the matching status
+    // so dropping on "Done" really completes the task (Sidney's bug). An
+    // explicit status in the body still wins.
+    if (body.columnId && body.status === undefined) {
+      const col = await prisma.column.findUnique({
+        where: { id: body.columnId },
+        select: { name: true },
+      });
+      const columnNameToStatus: Record<string, string> = {
+        "To Do": "TODO",
+        "In Progress": "IN_PROGRESS",
+        "In Review": "IN_REVIEW",
+        "Done": "DONE",
+        "Blocked": "BLOCKED",
+      };
+      const derived = col ? columnNameToStatus[col.name] : undefined;
+      if (derived && derived !== before?.status) {
+        updateData.status = derived;
+        if (derived === "DONE") updateData.completedAt = new Date();
+        else updateData.completedAt = null;
+      }
+    }
 
     // --- Move the task to a different project board (feedback #4) ---
     // A worker may only move a task between boards they belong to; access to the
@@ -353,11 +384,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       const statusLabels: Record<string, string> = {
         TODO: "To Do",
         IN_PROGRESS: "In Progress",
+        BLOCKED: "Blocked",
         IN_REVIEW: "In Review",
         DONE: "Done",
       };
 
-      if (body.status !== undefined && before && body.status !== before.status) {
+      // Covers explicit status changes AND ones derived from a column drop.
+      if (updateData.status !== undefined && before && updateData.status !== before.status) {
         await notifyTaskCollaborators({
           taskId,
           actorId: session.user.id,

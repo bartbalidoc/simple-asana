@@ -120,8 +120,9 @@ export async function POST(req: NextRequest) {
             data: [
               { name: "To Do", order: 0 },
               { name: "In Progress", order: 1 },
-              { name: "In Review", order: 2 },
-              { name: "Done", order: 3 },
+              { name: "Blocked", order: 2 },
+              { name: "In Review", order: 3 },
+              { name: "Done", order: 4 },
             ],
           },
         },

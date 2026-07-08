@@ -27,8 +27,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Comment-linked files render inside their comment, not in this list.
     const attachments = await prisma.attachment.findMany({
-      where: { taskId },
+      where: { taskId, commentId: null },
       orderBy: { uploadedAt: "desc" },
     });
 

@@ -40,6 +40,7 @@ interface KanbanBoardProps {
 
 const accent = (name: string) => {
   const n = name.toLowerCase();
+  if (n.includes("block")) return "bg-red-600";
   if (n.includes("progress")) return "bg-blue-500";
   if (n.includes("review")) return "bg-amber-500";
   if (n.includes("done")) return "bg-green-500";

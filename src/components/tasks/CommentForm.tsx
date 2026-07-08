@@ -14,10 +14,18 @@ interface CommentFormProps {
   onCommentAdded?: () => void;
 }
 
+interface PendingFile {
+  id: string;
+  fileName: string;
+}
+
 export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFormProps) {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Files uploaded from the comment box, linked to the comment on post (v1.5).
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   // @mention autocomplete state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +119,36 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
     }
   };
 
+  // Upload a file immediately (task-scoped, unlinked); it's tied to the
+  // comment when the comment is posted.
+  const handleAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    if (file.size > 15 * 1024 * 1024) {
+      setError(`"${file.name}" is over the 15 MB limit.`);
+      e.target.value = "";
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/tasks/${taskId}/attachments`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Upload failed");
+      setPendingFiles((prev) => [...prev, { id: data.id, fileName: data.fileName }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingFile(false);
+      e.target.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -126,7 +164,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
       const response = await fetch(`/api/tasks/${taskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, attachmentIds: pendingFiles.map((f) => f.id) }),
       });
 
       if (!response.ok) {
@@ -136,6 +174,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
 
       setBody("");
       setMentionQuery(null);
+      setPendingFiles([]);
       onCommentAdded?.();
     } catch (err) {
       console.error("Comment error:", err);
@@ -186,6 +225,30 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {/* Files staged for this comment */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {pendingFiles.map((f) => (
+          <span
+            key={f.id}
+            className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[11px] rounded-full pl-2 pr-1 py-0.5"
+          >
+            📎 {f.fileName}
+            <button
+              type="button"
+              onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== f.id))}
+              className="h-3.5 w-3.5 rounded-full hover:bg-gray-300 flex items-center justify-center"
+              title="Remove"
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        <label className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-600 cursor-pointer transition">
+          {uploadingFile ? "Uploading…" : "📎 Attach file"}
+          <input type="file" className="hidden" onChange={handleAttach} disabled={uploadingFile || loading} />
+        </label>
+      </div>
 
       <button
         type="submit"

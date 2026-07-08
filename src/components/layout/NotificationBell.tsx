@@ -22,6 +22,15 @@ const TYPE_ICONS: Record<string, string> = {
   UPDATE: "✏️",
 };
 
+// Filter chips (feedback: "I want to be able to filter my notifications").
+const FILTERS: { key: string; label: string }[] = [
+  { key: "ALL", label: "All" },
+  { key: "MENTION", label: "👋 Mentions" },
+  { key: "ASSIGNED", label: "📌 Assigned" },
+  { key: "COMMENT", label: "💬 Comments" },
+  { key: "STATUS", label: "🔄 Status" },
+];
+
 // Header bell: unread badge + dropdown. Clicking a notification marks it read
 // and deep-links straight to the task (feedback: no more manual searching).
 export function NotificationBell() {
@@ -29,6 +38,7 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("ALL");
   const panelRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -125,15 +135,36 @@ export function NotificationBell() {
             )}
           </div>
 
+          {/* Filter chips */}
+          <div className="flex gap-1 px-3 py-2 border-b border-gray-50 overflow-x-auto">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`text-[11px] px-2 py-1 rounded-full whitespace-nowrap transition ${
+                  filter === f.key
+                    ? "bg-red-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           <div className="max-h-96 overflow-y-auto">
             {loading && items.length === 0 ? (
               <div className="p-4 text-sm text-gray-400">Loading…</div>
-            ) : items.length === 0 ? (
+            ) : items.filter((n) => filter === "ALL" || n.type === filter).length === 0 ? (
               <div className="p-6 text-sm text-gray-400 text-center">
-                Nothing yet — task updates and mentions will show up here.
+                {filter === "ALL"
+                  ? "Nothing yet — task updates and mentions will show up here."
+                  : "No notifications of this type."}
               </div>
             ) : (
-              items.map((n) => (
+              items
+                .filter((n) => filter === "ALL" || n.type === filter)
+                .map((n) => (
                 <button
                   key={n.id}
                   onClick={() => openNotification(n)}
@@ -149,8 +180,8 @@ export function NotificationBell() {
                     </span>
                   </span>
                   {!n.readAt && <span className="mt-1 h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />}
-                </button>
-              ))
+                  </button>
+                ))
             )}
           </div>
         </div>

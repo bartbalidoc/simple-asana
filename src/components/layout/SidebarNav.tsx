@@ -47,6 +47,13 @@ const SunIcon = (
   </svg>
 );
 
+const WaveIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s2-3 5-3 5 3 8 3 5-3 7-3" />
+    <path d="M2 18s2-3 5-3 5 3 8 3 5-3 7-3" />
+  </svg>
+);
+
 const FolderIcon = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -85,6 +92,9 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
 
       {/* AI: meeting transcript → tasks (feedback #6) — available to everyone */}
       <NavLink href="/transcript" label="Meeting → Tasks" icon={<SparklesIcon size={16} />} />
+
+      {/* Onboarding hub (Sidney's request, v1.5) */}
+      <NavLink href="/welcome" label="Welcome Hub" icon={WaveIcon} exact />
 
       {isAdmin && (
         <>

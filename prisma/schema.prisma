@@ -197,6 +197,7 @@ model Task {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  BLOCKED
   IN_REVIEW
   DONE
 }
@@ -218,6 +219,21 @@ model Comment {
   taskId     String
   author     User     @relation(fields: [authorId], references: [id])
   authorId   String
+
+  reactions   CommentReaction[]
+  attachments Attachment[]
+}
+
+// Emoji reactions on comments (Gabriel's request, v1.5).
+model CommentReaction {
+  id        String   @id @default(cuid())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId, emoji])
 }
 
 model Attachment {
@@ -231,7 +247,18 @@ model Attachment {
 
   task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId       String
+  // Set when the file was attached to a specific comment (v1.5) — such files
+  // render inside the comment instead of the task's Attachments section.
+  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  commentId    String?
   uploadedById String
+}
+
+// Small key-value store for app configuration (e.g. Welcome Hub card links).
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model AuditLog {

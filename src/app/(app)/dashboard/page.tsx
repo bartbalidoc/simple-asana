@@ -31,6 +31,7 @@ interface DashProject {
 const STATUS_LABELS: Record<string, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
+  BLOCKED: "Blocked",
   IN_REVIEW: "In Review",
   DONE: "Done",
 };
@@ -127,6 +128,7 @@ export default function DashboardPage() {
     { key: "ALL", label: "All" },
     { key: "TODO", label: "To Do" },
     { key: "IN_PROGRESS", label: "In Progress" },
+    { key: "BLOCKED", label: "Blocked" },
     { key: "IN_REVIEW", label: "In Review" },
     { key: "DONE", label: "Done" },
   ];

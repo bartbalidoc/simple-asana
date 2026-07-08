@@ -20,6 +20,62 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.5",
+    date: "2026-07-08",
+    title: "Feedback round 3 — bugs squashed, comments upgraded, Welcome Hub",
+    items: [
+      {
+        type: "fixed",
+        title: "Dragging a card to Done now really completes it",
+        detail:
+          "Moving a card between board columns updates the task's real status too — no more opening the task to set the dropdown by hand. Works for every column, including the new Blocked one.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "fixed",
+        title: "Comments stay in the right order",
+        detail:
+          "Comment threads could show newer comments above older ones (especially after edits). They're now always oldest-to-newest.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "new",
+        title: "React to comments and attach files to them",
+        detail:
+          "Every comment now has emoji reactions (👍 ❤️ 😂 🎉 👀 ✅) via the 🙂+ button, and the comment box has a 📎 Attach file option — images show as previews right inside the comment.",
+        requestedBy: "Gabriel",
+      },
+      {
+        type: "new",
+        title: "Blocked column on every board",
+        detail:
+          "Each board gets a red “Blocked” column between In Progress and In Review — drag a stuck task there so blockers are visible at a glance. Blocked is also a status in the task panel and dashboard filters.",
+        requestedBy: "Gabriel",
+      },
+      {
+        type: "new",
+        title: "Welcome Hub for new team members",
+        detail:
+          "A friendly onboarding page (sidebar → Welcome Hub) with modules for the Tech Stack Map, Compliance & Privacy, the Doctor's Clinical Guide, and the BSO Execution Guide. Admins click ✏️ on a card to set where it links.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "new",
+        title: "Rebuild any task with AI",
+        detail:
+          "Old or messy tasks (hello, Asana imports) can be restructured in one click: open a task → “✨ Rebuild” under the description. You get a preview of the cleaned-up title, description and suggested subtasks, and nothing changes until you apply it. “Smart Discovery” is also renamed to what it is: AI Task Creator.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "Filter your notifications",
+        detail:
+          "The 🔔 bell now has filter chips — All, Mentions, Assigned, Comments, Status — so you can find the notification you're looking for.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.4",
     date: "2026-07-06",
     title: "My Day planner + stay logged in all day",

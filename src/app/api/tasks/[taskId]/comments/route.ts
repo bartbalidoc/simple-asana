@@ -140,6 +140,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       include: {
         // Slim select — a full author row would leak passwordHash to the client.
         author: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        reactions: true,
+        attachments: true,
       },
       orderBy: { createdAt: "asc" },
     });
@@ -191,6 +193,23 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         task: { select: { titleEnc: true } },
       },
     });
+
+    // Link files uploaded from the comment box (v1.5). Scoped to this task and
+    // the caller's own not-yet-linked uploads — ids from other tasks are ignored.
+    const attachmentIds: string[] = Array.isArray(body.attachmentIds)
+      ? body.attachmentIds.filter((x: any) => typeof x === "string").slice(0, 10)
+      : [];
+    if (attachmentIds.length > 0) {
+      await prisma.attachment.updateMany({
+        where: {
+          id: { in: attachmentIds },
+          taskId,
+          commentId: null,
+          uploadedById: session.user.id,
+        },
+        data: { commentId: comment.id },
+      });
+    }
 
     await writeAuditLog({
       actorId: session.user.id,

@@ -58,6 +58,16 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   // Task guests: teammates invited to just this task (no project access).
   const [guests, setGuests] = useState<any[]>([]);
   const [addingGuest, setAddingGuest] = useState(false);
+  // Rebuild with AI: Claude restructures a messy task; user previews, then applies.
+  const [rebuildInput, setRebuildInput] = useState("");
+  const [rebuilding, setRebuilding] = useState(false);
+  const [proposal, setProposal] = useState<{
+    title: string;
+    description: string;
+    priority: string;
+    subtasks: string[];
+  } | null>(null);
+  const [applyingProposal, setApplyingProposal] = useState(false);
   const isStaged = !!task?.project?.isStaging;
 
   useEffect(() => {
@@ -142,6 +152,87 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
 
     fetchTask();
   }, [taskId]);
+
+  const requestRebuild = async () => {
+    setRebuilding(true);
+    setProposal(null);
+    try {
+      const res = await fetch("/api/ai/rebuild-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, instruction: rebuildInput.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't rebuild the task.");
+      setProposal(data.proposal);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't rebuild the task.", "error");
+    } finally {
+      setRebuilding(false);
+    }
+  };
+
+  const applyProposal = async () => {
+    if (!proposal) return;
+    setApplyingProposal(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: proposal.title,
+          description: proposal.description,
+          priority: proposal.priority,
+        }),
+      });
+      if (!res.ok) throw new Error("Couldn't apply the rewrite.");
+
+      // Add proposed subtasks that don't exist yet; never touch existing ones.
+      const existing = new Set(
+        (task.subtasks || []).map((s: Subtask) => s.title.trim().toLowerCase())
+      );
+      const fresh = proposal.subtasks.filter((s) => !existing.has(s.trim().toLowerCase()));
+      const created: Subtask[] = [];
+      for (let i = 0; i < fresh.length; i++) {
+        const r = await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: task.projectId,
+            title: fresh[i],
+            parentTaskId: taskId,
+            columnId: task.columnId || undefined,
+            template: "general",
+            order: (task.subtasks?.length || 0) + i,
+          }),
+        }).catch(() => null);
+        if (r?.ok) {
+          const st = await r.json();
+          created.push({ id: st.id, title: fresh[i], status: "TODO" });
+        }
+      }
+
+      setTask((prev: any) => ({
+        ...prev,
+        title: proposal.title,
+        description: proposal.description,
+        priority: proposal.priority,
+        subtasks: [...(prev.subtasks || []), ...created],
+      }));
+      setUpdates((prev: any) => {
+        const { title: _t, description: _d, ...rest } = prev;
+        return rest;
+      });
+      setProposal(null);
+      setRebuildInput("");
+      toast("Task rebuilt ✨");
+      onTaskUpdated?.();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't apply the rewrite.", "error");
+    } finally {
+      setApplyingProposal(false);
+    }
+  };
 
   const handleAddGuest = async (userId: string) => {
     if (!userId) return;
@@ -692,6 +783,81 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                 </p>
               </>
             )}
+
+            {/* Rebuild with AI — restructure a messy task (great for old Asana imports) */}
+            {task.accessLevel !== "GUEST" && (
+              <div className="mt-3 border-t border-dashed border-gray-200 pt-2">
+                {!proposal ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={rebuildInput}
+                      onChange={(e) => setRebuildInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !rebuilding && requestRebuild()}
+                      placeholder="Rebuild with AI — optional hint, e.g. “split into clear steps”"
+                      disabled={rebuilding}
+                      className="flex-1 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-red-500 disabled:bg-gray-50"
+                    />
+                    <button
+                      onClick={requestRebuild}
+                      disabled={rebuilding}
+                      className="text-xs font-semibold text-white bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 rounded px-3 py-1.5 whitespace-nowrap transition"
+                    >
+                      {rebuilding ? "Rebuilding…" : "✨ Rebuild"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-gray-800 bg-gray-50 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                      AI proposal — nothing is saved until you apply
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">{proposal.title}</p>
+                    {proposal.description && (
+                      <p className="text-xs text-gray-600">{proposal.description}</p>
+                    )}
+                    {proposal.subtasks.length > 0 && (
+                      <ul className="space-y-0.5">
+                        {proposal.subtasks.map((s, i) => {
+                          const isNew = !(task.subtasks || []).some(
+                            (ex: Subtask) => ex.title.trim().toLowerCase() === s.trim().toLowerCase()
+                          );
+                          return (
+                            <li key={i} className="text-xs text-gray-600 flex gap-1.5 items-baseline">
+                              <span className="text-gray-300">•</span>
+                              <span>{s}</span>
+                              {isNew && (
+                                <span className="text-[9px] font-bold text-green-700 bg-green-50 rounded px-1">
+                                  NEW
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                    <p className="text-[11px] text-gray-400">
+                      Applying updates the title, description and priority, and adds the NEW
+                      subtasks. Existing subtasks are never changed or removed.
+                    </p>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={applyProposal}
+                        disabled={applyingProposal}
+                        className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 rounded px-3 py-1.5 transition"
+                      >
+                        {applyingProposal ? "Applying…" : "Apply rewrite"}
+                      </button>
+                      <button
+                        onClick={() => setProposal(null)}
+                        disabled={applyingProposal}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -975,6 +1141,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           >
             <option value="TODO">To Do</option>
             <option value="IN_PROGRESS">In Progress</option>
+            <option value="BLOCKED">Blocked</option>
             <option value="IN_REVIEW">In Review</option>
             <option value="DONE">Done</option>
           </select>

@@ -314,7 +314,7 @@ export default function ProjectPage() {
             }}
             leftIcon={<SparklesIcon size={16} />}
           >
-            Smart Discovery
+            AI Task Creator
           </Button>
           <Button
             active={showMembers}

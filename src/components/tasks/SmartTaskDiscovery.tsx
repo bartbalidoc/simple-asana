@@ -210,7 +210,7 @@ export function SmartTaskDiscovery({
       onClick={(e) => e.stopPropagation()}
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        Smart Task Discovery
+        AI Task Creator
       </h3>
       <p className="text-xs text-gray-500 mb-6">
         Answer the required question, then skip or answer optional ones. We&apos;ll create your task with professional subtasks.

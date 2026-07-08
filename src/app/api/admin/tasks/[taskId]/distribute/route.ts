@@ -20,6 +20,7 @@ interface RouteParams {
 const STATUS_TO_COLUMN: Record<string, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
+  BLOCKED: "Blocked",
   IN_REVIEW: "In Review",
   DONE: "Done",
 };
