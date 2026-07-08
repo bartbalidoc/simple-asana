@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.7",
+    date: "2026-07-08",
+    title: "Your old Asana content is back",
+    items: [
+      {
+        type: "fixed",
+        title: "Recovered task descriptions from the Asana migration",
+        detail:
+          "When we moved off Asana, task titles came across but the descriptions inside them didn't. We pulled the original text back from Asana and restored 346 task descriptions across every board — matched exactly to the right task, and only filling ones that were empty, so nothing you'd since written was touched.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "fixed",
+        title: "Recovered missing comments too",
+        detail:
+          "185 human comments that only existed in the old Asana are back on the boards, each with its original author and date, so they sit in their correct place in the conversation. Duplicates and Asana's automated reminder messages were left out.",
+        requestedBy: "Sidney",
+      },
+    ],
+  },
+  {
     version: "1.6",
     date: "2026-07-08",
     title: "Proofread comments with AI",
