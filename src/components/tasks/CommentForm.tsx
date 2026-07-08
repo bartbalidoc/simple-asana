@@ -26,6 +26,9 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   // Files uploaded from the comment box, linked to the comment on post (v1.5).
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  // AI proofread (feedback: clean up hard-to-read English before posting).
+  const [proofreading, setProofreading] = useState(false);
+  const [proofread, setProofread] = useState<{ original: string; corrected: string } | null>(null);
 
   // @mention autocomplete state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -149,6 +152,35 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
     }
   };
 
+  const handleProofread = async () => {
+    if (!body.trim()) return;
+    setProofreading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/proofread", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't proofread.");
+      if (data.corrected.trim() === body.trim()) {
+        setError("Looks good already — no changes needed.");
+      } else {
+        setProofread({ original: body, corrected: data.corrected });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't proofread.");
+    } finally {
+      setProofreading(false);
+    }
+  };
+
+  const acceptProofread = () => {
+    if (proofread) setBody(proofread.corrected);
+    setProofread(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -248,7 +280,45 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
           {uploadingFile ? "Uploading…" : "📎 Attach file"}
           <input type="file" className="hidden" onChange={handleAttach} disabled={uploadingFile || loading} />
         </label>
+        {/* AI proofread — fix spelling/grammar before posting */}
+        <button
+          type="button"
+          onClick={handleProofread}
+          disabled={proofreading || loading || !body.trim()}
+          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-600 disabled:text-gray-300 transition"
+          title="Fix spelling & grammar with AI (your text isn't changed until you accept)"
+        >
+          {proofreading ? "Proofreading…" : "✨ Proofread"}
+        </button>
       </div>
+
+      {/* Proofread preview — accept to replace the text, or keep the original */}
+      {proofread && (
+        <div className="rounded-lg border border-gray-800 bg-gray-50 p-3 space-y-2">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+            Suggested correction
+          </p>
+          <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
+            {proofread.corrected}
+          </p>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={acceptProofread}
+              className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded px-3 py-1.5 transition"
+            >
+              Use this
+            </button>
+            <button
+              type="button"
+              onClick={() => setProofread(null)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Keep mine
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         type="submit"

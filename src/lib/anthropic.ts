@@ -257,3 +257,75 @@ ${instruction}`;
       : task.subtasks,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Proofread a comment. Fixes spelling/grammar for non-native English writers
+// (feedback: GM Fafa's comments are hard to read) WITHOUT changing meaning,
+// tone, or the writer's own words beyond what's needed for clarity.
+// ---------------------------------------------------------------------------
+
+const PROOFREAD_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: { corrected: { type: "string" } },
+  required: ["corrected"],
+} as const;
+
+const PROOFREAD_SYSTEM = `You are a careful proofreader for a work chat between colleagues, many of whom are non-native English speakers.
+Given a comment, return a corrected version that fixes spelling, grammar, punctuation and word order so it reads clearly and professionally.
+Rules:
+- Preserve the original meaning exactly. Never add, remove or invent information, facts, names or numbers.
+- Keep it roughly the same length and the same friendly, plain register — do not make it formal, verbose or robotic.
+- Keep @mentions (e.g. @John Smith), URLs, numbers and any names exactly as written.
+- If the text is already correct, return it unchanged.
+- Output only the corrected comment text.`;
+
+/**
+ * Return a spelling/grammar-corrected version of a comment. Falls back to the
+ * original text if the model returns nothing usable.
+ */
+export async function proofreadText(text: string): Promise<string> {
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1024,
+      system: PROOFREAD_SYSTEM,
+      messages: [{ role: "user", content: `Comment to proofread:\n\n${text}` }],
+      output_config: {
+        effort: "low",
+        format: { type: "json_schema", schema: PROOFREAD_SCHEMA },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Anthropic API ${res.status}: ${t.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  if (data.stop_reason === "refusal") {
+    throw new Error("The model declined to proofread this comment.");
+  }
+  const textBlock = (data.content || []).find((b: any) => b.type === "text");
+  if (!textBlock?.text) throw new Error("Claude returned no content.");
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(textBlock.text);
+  } catch {
+    throw new Error("Claude returned malformed JSON.");
+  }
+
+  return typeof parsed?.corrected === "string" && parsed.corrected.trim()
+    ? parsed.corrected.trim()
+    : text;
+}

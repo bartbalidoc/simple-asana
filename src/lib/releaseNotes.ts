@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.6",
+    date: "2026-07-08",
+    title: "Proofread comments with AI",
+    items: [
+      {
+        type: "new",
+        title: "✨ Proofread button on comments",
+        detail:
+          "Writing a comment and want it to read cleanly? Click ✨ Proofread in the comment box and Claude fixes the spelling and grammar while keeping your meaning, tone, @mentions and links exactly as you wrote them. You see the suggestion first and choose “Use this” or “Keep mine” — nothing is changed until you accept.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.5",
     date: "2026-07-08",
     title: "Feedback round 3 — bugs squashed, comments upgraded, Welcome Hub",
