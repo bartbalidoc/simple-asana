@@ -29,6 +29,8 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   // AI proofread (feedback: clean up hard-to-read English before posting).
   const [proofreading, setProofreading] = useState(false);
   const [proofread, setProofread] = useState<{ original: string; corrected: string } | null>(null);
+  // Non-error feedback ("no changes needed") — must not look like a failure.
+  const [notice, setNotice] = useState<string | null>(null);
 
   // @mention autocomplete state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -82,6 +84,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setBody(value);
+    setNotice(null);
     updateMentionState(value, e.target.selectionStart ?? value.length);
   };
 
@@ -156,6 +159,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
     if (!body.trim()) return;
     setProofreading(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await fetch("/api/ai/proofread", {
         method: "POST",
@@ -165,7 +169,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't proofread.");
       if (data.corrected.trim() === body.trim()) {
-        setError("Looks good already — no changes needed.");
+        setNotice("✓ Looks good already — no changes needed.");
       } else {
         setProofread({ original: body, corrected: data.corrected });
       }
@@ -191,6 +195,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
 
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     try {
       const response = await fetch(`/api/tasks/${taskId}/comments`, {
@@ -218,85 +223,118 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
-      <div className="relative">
-        <textarea
-          ref={textareaRef}
-          value={body}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Add a comment... (use @ to mention a teammate)"
-          className="w-full border border-gray-300 rounded p-2 text-sm resize-none focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-blue-600"
-          style={{ minHeight: "3.5rem" }}
-          disabled={loading}
-        />
+      {/* One composer box: textarea + action bar together, so Attach/Proofread
+          read as part of the comment box instead of loose text floating below. */}
+      <div className="rounded-lg border border-gray-300 bg-white transition focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100">
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={body}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Add a comment... (use @ to mention a teammate)"
+            className="block w-full bg-transparent p-2.5 text-sm resize-none focus:outline-none"
+            style={{ minHeight: "3.5rem" }}
+            disabled={loading}
+          />
 
-        {mentionQuery !== null && suggestions.length > 0 && (
-          <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto text-sm">
-            {suggestions.map((m, i) => (
-              <li key={m.id}>
+          {mentionQuery !== null && suggestions.length > 0 && (
+            <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto text-sm">
+              {suggestions.map((m, i) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    // onMouseDown (not onClick) so the textarea doesn't blur first.
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insertMention(m);
+                    }}
+                    className={`w-full text-left px-3 py-2 ${
+                      i === activeIndex ? "bg-red-50" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="font-medium text-gray-900">{m.name}</span>
+                    {m.email && (
+                      <span className="text-gray-500 ml-1 text-xs">{m.email}</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Files staged for this comment */}
+        {pendingFiles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-2.5 pb-2">
+            {pendingFiles.map((f) => (
+              <span
+                key={f.id}
+                className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[11px] rounded-full pl-2 pr-1 py-0.5"
+              >
+                📎 {f.fileName}
                 <button
                   type="button"
-                  // onMouseDown (not onClick) so the textarea doesn't blur first.
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    insertMention(m);
-                  }}
-                  className={`w-full text-left px-3 py-2 ${
-                    i === activeIndex ? "bg-red-50" : "hover:bg-gray-50"
-                  }`}
+                  onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== f.id))}
+                  className="h-3.5 w-3.5 rounded-full hover:bg-gray-300 flex items-center justify-center"
+                  title="Remove"
                 >
-                  <span className="font-medium text-gray-900">{m.name}</span>
-                  {m.email && (
-                    <span className="text-gray-500 ml-1 text-xs">{m.email}</span>
-                  )}
+                  ✕
                 </button>
-              </li>
+              </span>
             ))}
-          </ul>
+          </div>
         )}
+
+        {/* Action bar */}
+        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-1.5 py-1.5">
+          <div className="flex items-center">
+            <label
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition ${
+                uploadingFile || loading
+                  ? "text-gray-300 cursor-default"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
+              }`}
+              title="Attach a file to this comment (max 15 MB)"
+            >
+              <span aria-hidden>📎</span>
+              {uploadingFile ? "Uploading…" : "Attach"}
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleAttach}
+                disabled={uploadingFile || loading}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleProofread}
+              disabled={proofreading || loading || !body.trim()}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:text-gray-300 disabled:hover:bg-transparent transition"
+              title="Fix spelling & grammar with AI — nothing changes until you approve it"
+            >
+              <span aria-hidden>✨</span>
+              {proofreading ? "Checking…" : "Proofread"}
+            </button>
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !body.trim()}
+            className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-xs font-semibold px-4 py-1.5 rounded-md transition"
+          >
+            {loading ? "Posting…" : "Post"}
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
-
-      {/* Files staged for this comment */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {pendingFiles.map((f) => (
-          <span
-            key={f.id}
-            className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[11px] rounded-full pl-2 pr-1 py-0.5"
-          >
-            📎 {f.fileName}
-            <button
-              type="button"
-              onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== f.id))}
-              className="h-3.5 w-3.5 rounded-full hover:bg-gray-300 flex items-center justify-center"
-              title="Remove"
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-        <label className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-600 cursor-pointer transition">
-          {uploadingFile ? "Uploading…" : "📎 Attach file"}
-          <input type="file" className="hidden" onChange={handleAttach} disabled={uploadingFile || loading} />
-        </label>
-        {/* AI proofread — fix spelling/grammar before posting */}
-        <button
-          type="button"
-          onClick={handleProofread}
-          disabled={proofreading || loading || !body.trim()}
-          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-600 disabled:text-gray-300 transition"
-          title="Fix spelling & grammar with AI (your text isn't changed until you accept)"
-        >
-          {proofreading ? "Proofreading…" : "✨ Proofread"}
-        </button>
-      </div>
+      {notice && <p className="text-xs text-green-700">{notice}</p>}
 
       {/* Proofread preview — accept to replace the text, or keep the original */}
       {proofread && (
-        <div className="rounded-lg border border-gray-800 bg-gray-50 p-3 space-y-2">
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-            Suggested correction
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-3 space-y-2">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            ✨ Suggested rewrite
           </p>
           <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
             {proofread.corrected}
@@ -305,28 +343,20 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
             <button
               type="button"
               onClick={acceptProofread}
-              className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded px-3 py-1.5 transition"
+              className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md px-3 py-1.5 transition"
             >
               Use this
             </button>
             <button
               type="button"
               onClick={() => setProofread(null)}
-              className="text-xs text-gray-500 hover:text-gray-700"
+              className="text-xs text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-md px-3 py-1.5 transition"
             >
               Keep mine
             </button>
           </div>
         </div>
       )}
-
-      <button
-        type="submit"
-        disabled={loading || !body.trim()}
-        className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-semibold py-2 px-4 rounded text-sm transition"
-      >
-        {loading ? "Posting..." : "Post Comment"}
-      </button>
     </form>
   );
 }

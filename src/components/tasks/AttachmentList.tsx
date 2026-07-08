@@ -130,9 +130,9 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
       <div>
         <label
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded cursor-pointer text-sm font-medium transition"
+          className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-md cursor-pointer text-xs font-medium transition"
         >
-          <span>📎 Upload File</span>
+          <span>📎 Attach file</span>
           <input
             type="file"
             onChange={handleFileUpload}

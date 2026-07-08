@@ -80,3 +80,35 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+// Dismiss one notification ({ id }) or clear the whole list ({ all: true }).
+// Deletes, not just marks read — feedback: "clean up without clicking one by one".
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    if (body?.all === true) {
+      await prisma.notification.deleteMany({
+        where: { userId: session.user.id },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    const id = typeof body?.id === "string" ? body.id : "";
+    if (!id) {
+      return NextResponse.json({ error: "id or all:true is required" }, { status: 400 });
+    }
+    // Scoped to the caller — you can only clear your own notifications.
+    await prisma.notification.deleteMany({
+      where: { id, userId: session.user.id },
+    });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("DELETE /api/notifications error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

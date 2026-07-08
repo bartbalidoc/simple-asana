@@ -659,7 +659,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                 el.style.height = "auto";
                 el.style.height = `${el.scrollHeight}px`;
               }}
-              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-blue-400 focus:border-red-500 focus:outline-none mb-2 bg-transparent resize-none overflow-hidden break-words"
+              className="w-full text-xl font-bold border-b-2 border-gray-200 hover:border-gray-400 focus:border-red-500 focus:outline-none mb-2 bg-transparent resize-none overflow-hidden break-words"
               placeholder="Task title..."
             />
             <p className="text-xs text-gray-500">

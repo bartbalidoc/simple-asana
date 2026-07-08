@@ -108,6 +108,29 @@ export function NotificationBell() {
     setItems((prev) => prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })));
   };
 
+  // Dismiss a single notification (✕ on the row) — optimistic removal.
+  const clearOne = (n: Notification) => {
+    setItems((prev) => prev.filter((x) => x.id !== n.id));
+    if (!n.readAt) setUnread((u) => Math.max(0, u - 1));
+    fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: n.id }),
+    }).catch(() => {});
+  };
+
+  // Empty the whole list in one go (feedback: no more clicking one by one).
+  const clearAll = () => {
+    if (!confirm("Clear all notifications? They can't be brought back.")) return;
+    setItems([]);
+    setUnread(0);
+    fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => {});
+  };
+
   return (
     <div className="relative" ref={panelRef}>
       <button
@@ -128,11 +151,22 @@ export function NotificationBell() {
         <div className="absolute right-0 mt-2 w-96 max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
             <span className="text-sm font-semibold text-gray-900">Notifications</span>
-            {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs text-red-600 hover:underline">
-                Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button onClick={markAllRead} className="text-xs text-red-600 hover:underline">
+                  Mark all read
+                </button>
+              )}
+              {items.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="text-xs text-gray-400 hover:text-gray-700 hover:underline"
+                  title="Remove all notifications"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Filter chips */}
@@ -165,22 +199,39 @@ export function NotificationBell() {
               items
                 .filter((n) => filter === "ALL" || n.type === filter)
                 .map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => openNotification(n)}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition flex gap-2.5 ${
-                    n.readAt ? "opacity-60" : "bg-red-50/40"
-                  }`}
-                >
-                  <span className="text-base leading-tight">{TYPE_ICONS[n.type] || "🔔"}</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] text-gray-800 leading-snug">{n.message}</span>
-                    <span className="block text-[11px] text-gray-400 mt-0.5">
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                  // A div (not a button) so the ✕ inside can be a real button.
+                  <div
+                    key={n.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openNotification(n)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") openNotification(n);
+                    }}
+                    className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition flex gap-2.5 cursor-pointer ${
+                      n.readAt ? "opacity-60" : "bg-red-50/40"
+                    }`}
+                  >
+                    <span className="text-base leading-tight">{TYPE_ICONS[n.type] || "🔔"}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[13px] text-gray-800 leading-snug">{n.message}</span>
+                      <span className="block text-[11px] text-gray-400 mt-0.5">
+                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                      </span>
                     </span>
-                  </span>
-                  {!n.readAt && <span className="mt-1 h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />}
-                  </button>
+                    {!n.readAt && <span className="mt-1.5 h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearOne(n);
+                      }}
+                      className="self-start -mr-1.5 -mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-200 flex-shrink-0 transition"
+                      title="Dismiss"
+                      aria-label="Dismiss notification"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))
             )}
           </div>

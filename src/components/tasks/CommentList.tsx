@@ -323,7 +323,7 @@ export function CommentList({
                 <div className="relative">
                   <button
                     onClick={() => setPickerFor(pickerFor === comment.id ? null : comment.id)}
-                    className="text-xs text-gray-300 hover:text-gray-500 rounded-full border border-transparent hover:border-gray-200 px-1.5 py-0.5 transition"
+                    className="text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full border border-transparent hover:border-gray-200 px-1.5 py-0.5 transition"
                     title="Add reaction"
                   >
                     🙂+
@@ -351,7 +351,7 @@ export function CommentList({
                 <div className="flex gap-3 mt-1.5">
                   <button
                     onClick={() => startEdit(comment)}
-                    className="text-xs text-gray-500 hover:text-blue-600 transition"
+                    className="text-xs text-gray-500 hover:text-gray-900 transition"
                   >
                     Edit
                   </button>

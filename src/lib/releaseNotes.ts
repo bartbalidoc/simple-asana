@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.8",
+    date: "2026-07-08",
+    title: "Notification cleanup + a tidier comment box",
+    items: [
+      {
+        type: "new",
+        title: "Clean up your notifications in one click",
+        detail:
+          "Every notification in the 🔔 bell now has a ✕ to dismiss it, and there's a “Clear all” at the top to empty the whole list at once — no more clicking them away one by one. “Mark all read” is still there too.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "A cleaner, tidier comment box",
+        detail:
+          "The comment box is now one neat unit: 📎 Attach and ✨ Proofread sit in a proper toolbar under your text, next to the Post button — instead of floating around as faint grey words. The AI suggestion preview matches, and a few clashing colors (stray blue accents on our red theme, like the Upload File button) were cleaned up across the task panel.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.7",
     date: "2026-07-08",
     title: "Your old Asana content is back",
