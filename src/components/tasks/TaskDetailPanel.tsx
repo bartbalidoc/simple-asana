@@ -13,9 +13,12 @@ import { AttachmentList } from "./AttachmentList";
 import { DistributeControl } from "./DistributeControl";
 import { Button } from "@/components/ui/Button";
 import {
+  CheckIcon,
   ChevronDownIcon,
   CloseIcon,
   GripIcon,
+  MessageIcon,
+  PaperclipIcon,
   PlusIcon,
   SparklesIcon,
   TrashIcon,
@@ -33,6 +36,9 @@ interface Subtask {
   status: string;
   order?: number;
   assigneeId?: string | null;
+  // Row indicators — how many comments/files live inside this subtask.
+  commentCount?: number;
+  attachmentCount?: number;
 }
 
 interface TaskDetailPanelProps {
@@ -70,6 +76,38 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   // Rarely-touched settings collapse behind "More settings"; deleting asks first.
   const [showMore, setShowMore] = useState(false);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState(false);
+
+  // Summarize & archive to Drive (v1.10) — for DONE tasks.
+  const [archiving, setArchiving] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+
+  const handleArchive = async () => {
+    setConfirmArchive(false);
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/archive`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn't archive this task.");
+      setTask((prev: any) =>
+        prev
+          ? { ...prev, archivedAt: new Date().toISOString(), archiveUrl: data.archiveUrl }
+          : prev
+      );
+      toast(
+        data.alreadyArchived
+          ? "This task was already archived."
+          : `Archived to Drive${
+              data.movedFiles
+                ? ` — ${data.movedFiles} file${data.movedFiles > 1 ? "s" : ""} moved`
+                : ""
+            }`
+      );
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't archive this task.", "error");
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   // Guests live inside More settings — open it when the task has guests so
   // they're never invisible.
@@ -720,6 +758,49 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
 
+        {/* Done → archive to Drive (v1.10): summary doc + files land in a
+            browsable folder, so old tasks can be cleaned out of the app
+            later without losing anything. */}
+        {task.status === "DONE" &&
+          !task.parentTaskId &&
+          !isStaged &&
+          task.accessLevel !== "GUEST" && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+              {task.archivedAt ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-green-800">
+                    <CheckIcon size={15} className="text-green-600" /> Archived to Drive
+                  </span>
+                  {task.archiveUrl && (
+                    <a
+                      href={task.archiveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-green-700 hover:underline"
+                    >
+                      Open the archive document →
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-green-800">
+                    <span className="font-medium">This task is done.</span>{" "}
+                    Keep a record in Drive, then it can be cleared out later.
+                  </p>
+                  <button
+                    onClick={() => setConfirmArchive(true)}
+                    disabled={archiving}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:bg-green-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1"
+                  >
+                    <SparklesIcon size={13} />
+                    {archiving ? "Archiving…" : "Summarize & archive"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
         {/* The fields people actually change live at the top: status,
             priority, due date, assignee, board. Template moved to More. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1300,13 +1381,42 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                                 <button
                                   onClick={() => onOpenTask?.(subtask.id)}
                                   title="Open subtask"
-                                  className={`block w-full text-left text-sm break-words hover:text-red-600 ${
-                                    subtask.status === "DONE"
-                                      ? "line-through text-gray-400"
-                                      : "text-gray-800"
-                                  }`}
+                                  className="flex w-full items-baseline gap-2 text-left text-sm group/sub"
                                 >
-                                  {subtask.title}
+                                  <span
+                                    className={`min-w-0 break-words group-hover/sub:text-red-600 ${
+                                      subtask.status === "DONE"
+                                        ? "line-through text-gray-400"
+                                        : "text-gray-800"
+                                    }`}
+                                  >
+                                    {subtask.title}
+                                  </span>
+                                  {/* What's inside without opening it (Bart's feedback):
+                                      comment/file counts on the row. */}
+                                  {((subtask.commentCount || 0) > 0 ||
+                                    (subtask.attachmentCount || 0) > 0) && (
+                                    <span className="flex items-center gap-2 flex-shrink-0 text-[11px] text-gray-400 tabular-nums">
+                                      {(subtask.commentCount || 0) > 0 && (
+                                        <span
+                                          className="inline-flex items-center gap-0.5"
+                                          title={`${subtask.commentCount} comment${(subtask.commentCount || 0) > 1 ? "s" : ""}`}
+                                        >
+                                          <MessageIcon size={11} />
+                                          {subtask.commentCount}
+                                        </span>
+                                      )}
+                                      {(subtask.attachmentCount || 0) > 0 && (
+                                        <span
+                                          className="inline-flex items-center gap-0.5"
+                                          title={`${subtask.attachmentCount} file${(subtask.attachmentCount || 0) > 1 ? "s" : ""}`}
+                                        >
+                                          <PaperclipIcon size={11} />
+                                          {subtask.attachmentCount}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
                                 </button>
                                 <div className="flex items-center gap-2 mt-2">
                                   <select
@@ -1439,6 +1549,18 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         confirmLabel="Delete task"
         onConfirm={handleDeleteTask}
         onCancel={() => setConfirmDeleteTask(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmArchive}
+        title="Archive this task to Drive?"
+        message={`Claude writes a summary, and a document with the full record (description, subtasks, all comments) is created in Drive under Task Archive → ${
+          task.project?.name || "your project"
+        }. The task's files move into that folder. The task itself stays here, marked as archived.`}
+        confirmLabel="Archive to Drive"
+        busy={archiving}
+        onConfirm={handleArchive}
+        onCancel={() => setConfirmArchive(false)}
       />
       </div>
     </>

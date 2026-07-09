@@ -329,3 +329,71 @@ export async function proofreadText(text: string): Promise<string> {
     ? parsed.corrected.trim()
     : text;
 }
+
+// ---------------------------------------------------------------------------
+// Task archive summary (v1.10): when a DONE task is archived to Drive, Claude
+// writes the executive summary that tops the archive document.
+
+const ARCHIVE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    summary: { type: "string" },
+    outcome: { type: "string" },
+    keyPoints: { type: "array", items: { type: "string" } },
+  },
+  required: ["summary", "outcome", "keyPoints"],
+} as const;
+
+const ARCHIVE_SYSTEM = `You summarize a completed project-management task for a permanent archive document. The readers are future teammates checking "what happened with this?" months later. Using ONLY the provided task data:
+- summary: 2-4 plain sentences — what this task was about and what was done. No fluff, no marketing tone.
+- outcome: one sentence stating the end result or deliverable (e.g. what was shipped, decided, fixed, or produced).
+- keyPoints: 0-8 short bullet points capturing decisions, important facts, numbers, links, or agreements found in the description and comments that are worth keeping. Skip greetings, chit-chat and status pings. Never invent facts.
+Write in simple English readable by non-native speakers.`;
+
+export interface ArchiveSummary {
+  summary: string;
+  outcome: string;
+  keyPoints: string[];
+}
+
+export async function summarizeTaskForArchive(taskDump: string): Promise<ArchiveSummary> {
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      system: ARCHIVE_SYSTEM,
+      messages: [{ role: "user", content: `Task to summarize for the archive:\n\n${taskDump.slice(0, 60000)}` }],
+      output_config: {
+        effort: "low",
+        format: { type: "json_schema", schema: ARCHIVE_SCHEMA },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Anthropic API ${res.status}: ${t.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  if (data.stop_reason === "refusal") {
+    throw new Error("The model declined to summarize this task.");
+  }
+  const textBlock = (data.content || []).find((b: any) => b.type === "text");
+  if (!textBlock?.text) throw new Error("Claude returned no content.");
+  const parsed = JSON.parse(textBlock.text);
+  return {
+    summary: String(parsed.summary || ""),
+    outcome: String(parsed.outcome || ""),
+    keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.map(String) : [],
+  };
+}

@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.10",
+    date: "2026-07-09",
+    title: "Archive finished tasks to Drive + see what's inside subtasks",
+    items: [
+      {
+        type: "new",
+        title: "Summarize & archive done tasks to Google Drive",
+        detail:
+          "Open any task that's marked Done and you'll see a green banner with “Summarize & archive”. One click and Claude writes a short summary, a Google Doc with the complete record (description, subtasks, every comment) is created in Drive under Task Archive → your project, and the task's files move into that same folder. The task stays in BaliDoc marked “Archived to Drive”, so we can clean old tasks out of the app later while keeping a tidy, searchable archive of everything we did.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "Subtasks show what's inside them",
+        detail:
+          "Subtask rows now show small comment and file counters, so you can see at a glance which subtasks hold a discussion or documents — no more opening each one to check.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.9",
     date: "2026-07-09",
     title: "A calmer, cleaner BaliDoc — design polish everywhere",

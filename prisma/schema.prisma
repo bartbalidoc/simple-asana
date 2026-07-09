@@ -171,6 +171,11 @@ model Task {
   updatedAt      DateTime   @updatedAt
   completedAt    DateTime?
 
+  // "Summarize & archive to Drive" (Bart, v1.10): set once a summary Google
+  // Doc exists in the Drive archive and the task's files were moved there.
+  archivedAt     DateTime?
+  archiveUrl     String?   // webViewLink of the summary Google Doc
+
   // Asana import + staging-distribution bookkeeping.
   asanaId          String?   @unique   // source Asana task GID (idempotent import); copies have null
   distributedAt    DateTime?           // set on a staged task once copied into a real project (drives the color change)
@@ -282,6 +287,7 @@ enum AuditAction {
   TASK_CREATED
   TASK_UPDATED
   TASK_DELETED
+  TASK_ARCHIVED
   COMMENT_CREATED
   COMMENT_UPDATED
   COMMENT_DELETED

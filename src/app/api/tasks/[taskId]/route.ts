@@ -48,6 +48,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         attachments: true,
         subtasks: {
           orderBy: { order: "asc" },
+          // Row indicators: "does this subtask hold comments/files?" (Bart's
+          // feedback — you couldn't tell without opening each one).
+          include: { _count: { select: { comments: true, attachments: true } } },
         },
       },
     });
@@ -79,6 +82,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         ...st,
         title: decrypt(st.titleEnc),
         description: st.descriptionEnc ? decrypt(st.descriptionEnc) : null,
+        commentCount: (st as any)._count?.comments ?? 0,
+        attachmentCount: (st as any)._count?.attachments ?? 0,
       })) || [],
       comments: task.comments?.map((c) => ({
         ...c,
@@ -341,6 +346,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         createdBy: { select: safeUserSelect },
         subtasks: {
           orderBy: { order: "asc" },
+          // Row indicators: "does this subtask hold comments/files?" (Bart's
+          // feedback — you couldn't tell without opening each one).
+          include: { _count: { select: { comments: true, attachments: true } } },
         },
       },
     });
@@ -447,6 +455,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ...st,
         title: decrypt(st.titleEnc),
         description: st.descriptionEnc ? decrypt(st.descriptionEnc) : null,
+        commentCount: (st as any)._count?.comments ?? 0,
+        attachmentCount: (st as any)._count?.attachments ?? 0,
       })) || [],
     };
 
