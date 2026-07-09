@@ -38,7 +38,12 @@ ALLOWED_EMAIL_DOMAIN=yourhospital.org
 # Google Drive (for file attachments)
 GOOGLE_SERVICE_ACCOUNT_KEY_B64=base64_encoded_service_account_json_here
 
-# OpenAI (for Smart Discovery AI)
+# Anthropic Claude (transcript→tasks, proofread, rebuild, archive summaries)
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Optional: override the model (default claude-opus-4-8)
+# ANTHROPIC_MODEL=claude-haiku-4-5
+
+# OpenAI (legacy — the older /api/ai/* helpers like AI task creator subtask expansion)
 OPENAI_API_KEY=sk-your-openai-key-here
 ```
 
@@ -124,6 +129,7 @@ services:
       - ALLOWED_EMAIL_DOMAIN=${ALLOWED_EMAIL_DOMAIN}
       - GOOGLE_SERVICE_ACCOUNT_KEY_B64=${GOOGLE_SERVICE_ACCOUNT_KEY_B64}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - NODE_ENV=production
     depends_on:
       db:

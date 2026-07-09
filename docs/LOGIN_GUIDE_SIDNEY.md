@@ -29,7 +29,7 @@ You'll land on the **Project Hub**. The little **Admin** badge next to your emai
 | **Create** new projects | "New Project" button (only admins see it) |
 | **Assign** a whole project to a worker | Open a project → "👥 Members" → choose a person |
 | **Remove** someone from a project | "👥 Members" → "✕ Remove" |
-| Create tasks (quick or guided) | "Quick Task" / "Smart Discovery" on a project board |
+| Create tasks (quick or guided) | "Quick task" / "AI task creator" on a project board |
 | **Assign any task to anyone** on the team | Open a task → "Assigned To" |
 | Set priority, due dates, subtasks, comments, attachments | Inside each task |
 
@@ -63,7 +63,7 @@ You can share each person's email + the password so they can log in.
 1. **Log in** as `sidney@balidoc.com`.
 2. Click **Projects → New Project**. Give it a name (e.g. "Client Onboarding") → Create.
 3. Open the project → click **👥 Members** → choose a worker (e.g. Asima) → **Assign to project**.
-4. Click **Smart Discovery** to create a well-structured task:
+4. Click **AI task creator** to create a well-structured task:
    - **Task name** (required) → becomes the task title
    - **Objective** (required) → why it matters
    - Then optional questions: problem, stakeholders, acceptance criteria, blockers, complexity, and **"Could this be automated?"**
@@ -76,8 +76,8 @@ That's the whole loop: **create project → assign people → create tasks → a
 
 ## 5. Good to know
 
-- **Quick Task** = a fast way to add a simple to-do (just a title).
-- **Smart Discovery** = the guided, AI-assisted way to create a complete task with subtasks.
+- **Quick task** = a fast way to add a simple to-do (just a title).
+- **AI task creator** (formerly “Smart Discovery”) = the guided, AI-assisted way to create a complete task with subtasks.
 - **Drag** task cards between columns (To Do → In Progress → In Review → Done), or change **Status** inside a task.
 - **Comments** and **file attachments** live inside each task (files are saved to our BaliDoc Google Drive).
 - Changes save automatically; **refresh** the page any time to see the latest.

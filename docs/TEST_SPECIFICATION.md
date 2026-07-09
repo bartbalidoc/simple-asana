@@ -1,5 +1,10 @@
 # Simple Asana — Complete Test Specification & Product Review
 
+> **Historical snapshot (June 2026).** The app has moved on since this was written —
+> e.g. “Smart Discovery” is now **AI task creator**, “Upload File” is **Attach file**, and
+> many features were added (notifications, My Day, comment reactions, Drive archive…).
+> The living changelog is `/admin/release-notes` (source: `src/lib/releaseNotes.ts`).
+
 **Live staging URL:** http://206.189.200.138:3000
 **Last updated:** 2026-06-18
 

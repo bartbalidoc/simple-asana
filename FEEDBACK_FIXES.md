@@ -1,5 +1,10 @@
 # Feedback Fixes — Work Log
 
+> **Historical work log (feedback round 1, July 2026).** Everything after round 1 is
+> tracked in-app instead: the feedback board at `/admin/feedback` (rows marked FIXED with
+> their release) and the changelog at `/admin/release-notes`.
+
+
 Tracking the fixes for the 7 items submitted through the in-app feedback system
 (`./feedback.sh`, backed by the `Feedback` table on the prod droplet). Two team members
 submitted them: **Meilinda** (5) and **Sidney** (2). Work proceeds **small → big**, each item
