@@ -6,9 +6,9 @@ export function SignOutButton() {
   return (
     <button
       onClick={() => signOut({ redirect: true, callbackUrl: "/login" })}
-      className="text-sm text-blue-600 hover:text-blue-700"
+      className="text-sm text-gray-500 hover:text-gray-800 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition"
     >
-      Sign Out
+      Sign out
     </button>
   );
 }

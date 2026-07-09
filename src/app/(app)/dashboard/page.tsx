@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Select } from "@/components/ui/Select";
+import {
+  AlertTriangleIcon,
+  BoardIcon,
+  CalendarIcon,
+  CheckIcon,
+} from "@/components/ui/icons";
 
 interface DashTask {
   id: string;
@@ -36,10 +43,22 @@ const STATUS_LABELS: Record<string, string> = {
   DONE: "Done",
 };
 
-function priorityClasses(priority: string) {
-  if (priority === "HIGH") return "bg-red-100 text-red-800";
-  if (priority === "LOW") return "bg-green-100 text-green-800";
-  return "bg-yellow-100 text-yellow-800";
+// Medium is the default priority — it earns no chip, so the chips that do
+// appear (High, Low) actually mean something.
+function PriorityChip({ priority }: { priority: string }) {
+  if (priority === "HIGH")
+    return (
+      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 whitespace-nowrap">
+        High
+      </span>
+    );
+  if (priority === "LOW")
+    return (
+      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
+        Low
+      </span>
+    );
+  return null;
 }
 
 function startOfToday() {
@@ -134,7 +153,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div>
+    <div className="max-w-5xl">
       <h2 className="text-2xl font-bold text-gray-900">
         Welcome back, {data?.name?.split(" ")[0] || "there"} 👋
       </h2>
@@ -142,20 +161,45 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Assigned to me" value={active} icon="📌" tint="bg-gray-100" accent="text-gray-900" />
-        <StatCard label="Overdue" value={overdue} icon="⚠" tint="bg-red-50" accent="text-red-600" />
-        <StatCard label="Due today" value={dueToday} icon="📅" tint="bg-amber-50" accent="text-amber-600" />
-        <StatCard label="Completed" value={done} icon="✓" tint="bg-green-50" accent="text-green-600" />
+        <StatCard
+          label="Assigned to me"
+          value={active}
+          icon={<BoardIcon size={18} />}
+          tint="bg-gray-100 text-gray-500"
+          accent="text-gray-900"
+        />
+        <StatCard
+          label="Overdue"
+          value={overdue}
+          icon={<AlertTriangleIcon size={18} />}
+          tint="bg-red-50 text-red-500"
+          accent="text-red-600"
+        />
+        <StatCard
+          label="Due today"
+          value={dueToday}
+          icon={<CalendarIcon size={18} />}
+          tint="bg-amber-50 text-amber-500"
+          accent="text-amber-600"
+        />
+        <StatCard
+          label="Completed"
+          value={done}
+          icon={<CheckIcon size={18} />}
+          tint="bg-green-50 text-green-600"
+          accent="text-green-600"
+        />
       </div>
 
-      {/* View toggle */}
-      <div className="flex items-center gap-2 mb-5">
-        <TabButton active={view === "tasks"} onClick={() => setView("tasks")}>
-          My Tasks ({active})
-        </TabButton>
-        <TabButton active={view === "projects"} onClick={() => setView("projects")}>
-          My Projects ({projects.length})
-        </TabButton>
+      {/* View switcher — a segmented control, visually distinct from the
+          status filter chips below so tabs and filters stop looking alike. */}
+      <div className="inline-flex items-center rounded-lg bg-gray-100 p-0.5 mb-5" role="tablist">
+        <SegmentButton active={view === "tasks"} onClick={() => setView("tasks")}>
+          My tasks <span className="tabular-nums">({active})</span>
+        </SegmentButton>
+        <SegmentButton active={view === "projects"} onClick={() => setView("projects")}>
+          My projects <span className="tabular-nums">({projects.length})</span>
+        </SegmentButton>
       </div>
 
       {view === "tasks" ? (
@@ -167,7 +211,7 @@ export default function DashboardPage() {
                 <button
                   key={c.key}
                   onClick={() => setStatusFilter(c.key)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
                     statusFilter === c.key
                       ? "bg-red-600 text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -178,16 +222,20 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Group by</span>
-              <select
+              <label htmlFor="dash-group-by" className="text-gray-500">
+                Group by
+              </label>
+              <Select
+                id="dash-group-by"
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as any)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-500"
+                containerClassName="relative inline-block"
+                className="!py-1.5"
               >
                 <option value="due">Due date</option>
                 <option value="status">Status</option>
                 <option value="project">Project</option>
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -197,60 +245,71 @@ export default function DashboardPage() {
             <div className="space-y-6">
               {groupKeys.map((key) => (
                 <div key={key}>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                    {key} <span className="text-gray-300">({groups[key].length})</span>
+                  <h3
+                    className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+                      key === "Overdue" ? "text-red-600" : "text-gray-400"
+                    }`}
+                  >
+                    {key}{" "}
+                    <span
+                      className={`tabular-nums ${
+                        key === "Overdue" ? "text-red-300" : "text-gray-300"
+                      }`}
+                    >
+                      ({groups[key].length})
+                    </span>
                   </h3>
-                  <div className="space-y-2">
+                  {/* One bordered list per group, compact rows with a hairline
+                      between them — calmer than a stack of separate cards. */}
+                  <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
                     {groups[key].map((t) => (
                       <Link
                         key={t.id}
                         href={t.guest ? `/tasks/${t.id}` : `/projects/${t.projectId}?task=${t.id}`}
-                        className="block bg-white rounded-lg border border-gray-200 hover:border-red-300 hover:shadow-sm transition p-4"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition focus:outline-none focus-visible:bg-red-50/50"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium text-gray-900 line-clamp-2 break-words" title={t.title}>{t.title}</p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <span className="bg-gray-100 px-2 py-0.5 rounded">
-                                {t.projectName}
-                              </span>
-                              {t.guest && (
-                                <span
-                                  className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium"
-                                  title="You're a guest on this task — you see only this task, not its project"
-                                >
-                                  Guest
-                                </span>
-                              )}
-                              <span>{STATUS_LABELS[t.status] || t.status}</span>
-                              {t.subtotal > 0 && (
-                                <span>
-                                  ✓ {t.subdone}/{t.subtotal}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded ${priorityClasses(
-                                t.priority
-                              )}`}
-                            >
-                              {t.priority}
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <p
+                            className="font-medium text-sm text-gray-900 truncate"
+                            title={t.title}
+                          >
+                            {t.title}
+                          </p>
+                          {t.subtotal > 0 && (
+                            <span className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums">
+                              ✓ {t.subdone}/{t.subtotal}
                             </span>
-                            {t.dueDate && (
-                              <span
-                                className={`text-xs ${
-                                  dueBucket(t.dueDate, t.status) === "Overdue"
-                                    ? "text-red-600 font-medium"
-                                    : "text-gray-500"
-                                }`}
-                              >
-                                {new Date(t.dueDate).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
+
+                        <span className="hidden sm:inline-block text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded max-w-[160px] truncate">
+                          {t.projectName}
+                        </span>
+                        {t.guest && (
+                          <span
+                            className="text-[11px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium whitespace-nowrap"
+                            title="You're a guest on this task — you see only this task, not its project"
+                          >
+                            Guest
+                          </span>
+                        )}
+                        {groupBy !== "status" && (
+                          <span className="hidden md:inline text-xs text-gray-400 whitespace-nowrap">
+                            {STATUS_LABELS[t.status] || t.status}
+                          </span>
+                        )}
+                        <PriorityChip priority={t.priority} />
+                        {t.dueDate && (
+                          <span
+                            className={`text-xs whitespace-nowrap tabular-nums ${
+                              dueBucket(t.dueDate, t.status) === "Overdue"
+                                ? "text-red-600 font-medium"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {new Date(t.dueDate).toLocaleDateString()}
+                          </span>
+                        )}
                       </Link>
                     ))}
                   </div>
@@ -301,23 +360,23 @@ function StatCard({
   label: string;
   value: number;
   accent: string;
-  icon: string;
+  icon: React.ReactNode;
   tint: string;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-      <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-lg ${tint}`}>
+      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${tint}`}>
         {icon}
       </div>
       <div className="min-w-0">
-        <div className={`text-2xl font-bold leading-tight ${accent}`}>{value}</div>
+        <div className={`text-2xl font-bold leading-tight tabular-nums ${accent}`}>{value}</div>
         <div className="text-xs text-gray-500 truncate">{label}</div>
       </div>
     </div>
   );
 }
 
-function TabButton({
+function SegmentButton({
   active,
   onClick,
   children,
@@ -329,8 +388,12 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-        active ? "bg-red-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+      role="tab"
+      aria-selected={active}
+      className={`px-4 py-1.5 rounded-md text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+        active
+          ? "bg-white text-gray-900 shadow-sm"
+          : "text-gray-500 hover:text-gray-800"
       }`}
     >
       {children}

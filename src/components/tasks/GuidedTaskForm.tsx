@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SparklesIcon } from "@/components/ui/icons";
 
 interface GuidedTaskFormProps {
   projectId: string;
@@ -174,9 +175,9 @@ export function GuidedTaskForm({
               type="button"
               onClick={() => handleAiEnhance("title", title)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Polishing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>
@@ -199,9 +200,9 @@ export function GuidedTaskForm({
             <button
               onClick={() => handleAiEnhance("description", description)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Enhancing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>
@@ -224,9 +225,9 @@ export function GuidedTaskForm({
             <button
               onClick={() => handleAiEnhance("problem", problem)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Polishing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>
@@ -249,9 +250,9 @@ export function GuidedTaskForm({
             <button
               onClick={() => handleAiEnhance("currentWorkflow", currentWorkflow)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Polishing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>
@@ -274,9 +275,9 @@ export function GuidedTaskForm({
             <button
               onClick={() => handleAiEnhance("desiredImprovement", desiredImprovement)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Polishing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>
@@ -299,9 +300,9 @@ export function GuidedTaskForm({
             <button
               onClick={() => handleAiEnhance("automationOpportunity", automationOpportunity)}
               disabled={aiLoading}
-              className="mt-2 text-blue-600 hover:text-blue-700 text-sm disabled:text-gray-400"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 disabled:text-gray-400 transition"
             >
-              ✨ {aiLoading ? "Polishing..." : "Polish"}
+              <SparklesIcon size={14} /> {aiLoading ? "Polishing…" : "Polish"}
             </button>
           )}
         </div>

@@ -12,7 +12,17 @@ import { CommentForm } from "./CommentForm";
 import { AttachmentList } from "./AttachmentList";
 import { DistributeControl } from "./DistributeControl";
 import { Button } from "@/components/ui/Button";
-import { TrashIcon, GripIcon, PlusIcon, CloseIcon } from "@/components/ui/icons";
+import {
+  ChevronDownIcon,
+  CloseIcon,
+  GripIcon,
+  PlusIcon,
+  SparklesIcon,
+  TrashIcon,
+  ZapIcon,
+} from "@/components/ui/icons";
+import { Select } from "@/components/ui/Select";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { Markdown } from "@/components/ui/Markdown";
 import { TASK_TEMPLATES } from "@/lib/taskTemplates";
@@ -57,6 +67,15 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   const [moving, setMoving] = useState(false);
   // Task guests: teammates invited to just this task (no project access).
   const [guests, setGuests] = useState<any[]>([]);
+  // Rarely-touched settings collapse behind "More settings"; deleting asks first.
+  const [showMore, setShowMore] = useState(false);
+  const [confirmDeleteTask, setConfirmDeleteTask] = useState(false);
+
+  // Guests live inside More settings — open it when the task has guests so
+  // they're never invisible.
+  useEffect(() => {
+    if (guests.length > 0) setShowMore(true);
+  }, [guests.length]);
   const [addingGuest, setAddingGuest] = useState(false);
   // Rebuild with AI: Claude restructures a messy task; user previews, then applies.
   const [rebuildInput, setRebuildInput] = useState("");
@@ -560,10 +579,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
   };
 
   const handleDeleteTask = async () => {
-    if (!confirm("Are you sure you want to delete this task? This cannot be undone.")) {
-      return;
-    }
-
+    setConfirmDeleteTask(false);
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "DELETE",
@@ -594,7 +610,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
     return (
       <div className="fixed right-0 top-0 h-screen [height:100dvh] w-full max-w-[540px] bg-white shadow-2xl border-l border-gray-200 p-4 sm:p-6">
         <div className="text-red-600 mb-4">{error}</div>
-        <button onClick={onClose} className="text-blue-600 hover:underline">
+        <button onClick={onClose} className="text-sm text-gray-600 hover:text-gray-900 underline">
           Close
         </button>
       </div>
@@ -667,19 +683,13 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Button
-              onClick={handleDeleteTask}
-              variant="danger"
-              size="sm"
-              leftIcon={<TrashIcon size={14} />}
-              title="Delete task"
-            >
-              Delete
-            </Button>
+            {/* Delete moved to the panel footer — destructive actions don't
+                belong next to the close button. */}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               title="Close"
+              aria-label="Close task panel"
             >
               <CloseIcon size={20} />
             </button>
@@ -692,7 +702,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         {isStaged && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
             <div className="text-xs font-semibold text-amber-800">
-              📥 Staged from Asana
+              Staged from Asana
               {task.originalAssignee && (
                 <span className="font-normal text-amber-700">
                   {" "}· original owner: {task.originalAssignee}
@@ -710,27 +720,144 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
 
-        {/* Template Selector */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Template
-          </label>
-          <select
-            value={template}
-            onChange={(e) => {
-              setTemplate(e.target.value);
-              setHasChanges(true);
-            }}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
-          >
-            {Object.values(TASK_TEMPLATES).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">{currentTemplate.description}</p>
+        {/* The fields people actually change live at the top: status,
+            priority, due date, assignee, board. Template moved to More. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="task-status" className="block text-sm font-semibold text-gray-900 mb-2">
+              Status
+            </label>
+            <Select
+              id="task-status"
+              value={updates.status !== undefined ? updates.status : task.status}
+              onChange={async (e) => {
+                const newStatus = e.target.value;
+                setUpdates({ ...updates, status: newStatus });
+                setHasChanges(true);
+                try {
+                  const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: newStatus }),
+                  });
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || "Failed to update status");
+                  }
+                  const updated = await response.json();
+                  // Preserve loaded comments (PATCH response omits them) — item #1.
+                  setTask((prev: any) => ({
+                    ...prev,
+                    ...updated,
+                    comments: prev?.comments ?? updated.comments ?? [],
+                  }));
+                  setUpdates({});
+                  setHasChanges(false);
+                  onTaskUpdated?.();
+                } catch (err) {
+                  console.error("Status update error:", err);
+                  setError(err instanceof Error ? err.message : "Failed to update status");
+                }
+              }}
+            >
+              <option value="TODO">To Do</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="BLOCKED">Blocked</option>
+              <option value="IN_REVIEW">In Review</option>
+              <option value="DONE">Done</option>
+            </Select>
+          </div>
+
+          {currentTemplate.fields.priority && (
+            <div>
+              <label htmlFor="task-priority" className="block text-sm font-semibold text-gray-900 mb-2">
+                Priority
+              </label>
+              <Select
+                id="task-priority"
+                value={updates.priority !== undefined ? updates.priority : task.priority}
+                onChange={(e) => handlePriorityChange(e.target.value)}
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </Select>
+            </div>
+          )}
+
+          {currentTemplate.fields.dueDate && (
+            <div>
+              <label htmlFor="task-due" className="block text-sm font-semibold text-gray-900 mb-2">
+                Due date
+              </label>
+              <input
+                id="task-due"
+                type="date"
+                value={
+                  updates.dueDate !== undefined
+                    ? updates.dueDate
+                      ? new Date(updates.dueDate).toISOString().split("T")[0]
+                      : ""
+                    : task.dueDate
+                    ? new Date(task.dueDate).toISOString().split("T")[0]
+                    : ""
+                }
+                onChange={(e) => {
+                  setUpdates({ ...updates, dueDate: e.target.value || null });
+                  setHasChanges(true);
+                }}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white transition focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="task-assignee" className="block text-sm font-semibold text-gray-900 mb-2">
+              Assigned to
+            </label>
+            <Select
+              id="task-assignee"
+              value={task.assigneeId || ""}
+              onChange={(e) => handleAssigneeChange(e.target.value || null)}
+            >
+              <option value="">Unassigned</option>
+              {members.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
+
+        {/* Move to another project board (feedback #4) */}
+        {!isStaged && !task.parentTaskId && (
+          <div>
+            <label htmlFor="task-board" className="block text-sm font-semibold text-gray-900 mb-2">
+              Project board
+            </label>
+            <Select
+              id="task-board"
+              value={task.projectId}
+              disabled={moving}
+              onChange={(e) => handleMoveToProject(e.target.value)}
+            >
+              <option value={task.projectId}>
+                {task.project?.name ? `${task.project.name} (current)` : "Current board"}
+              </option>
+              {moveProjects
+                .filter((p) => p.id !== task.projectId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    → Move to: {p.name}
+                  </option>
+                ))}
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              {moving ? "Moving…" : "Pick another board to move this task (and its subtasks) there."}
+            </p>
+          </div>
+        )}
 
         {/* Dynamic Fields Based on Template */}
 
@@ -800,15 +927,16 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                     <button
                       onClick={requestRebuild}
                       disabled={rebuilding}
-                      className="text-xs font-semibold text-white bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 rounded px-3 py-1.5 whitespace-nowrap transition"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 rounded-md px-3 py-1.5 whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1"
                     >
-                      {rebuilding ? "Rebuilding…" : "✨ Rebuild"}
+                      <SparklesIcon size={13} />
+                      {rebuilding ? "Rebuilding…" : "Rebuild"}
                     </button>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-gray-800 bg-gray-50 p-3 space-y-2">
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      AI proposal — nothing is saved until you apply
+                  <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-3 space-y-2">
+                    <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                      <SparklesIcon size={12} /> AI proposal — nothing is saved until you apply
                     </p>
                     <p className="text-sm font-semibold text-gray-900">{proposal.title}</p>
                     {proposal.description && (
@@ -985,207 +1113,132 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
 
-        {currentTemplate.fields.automationOpportunity && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              ⚡ Automation Opportunity
-            </label>
-            <textarea
-              value={
-                updates.automationOpportunity !== undefined
-                  ? updates.automationOpportunity
-                  : task.automationOpportunity || ""
-              }
-              onChange={(e) => {
-                setUpdates({ ...updates, automationOpportunity: e.target.value });
-                setHasChanges(true);
-              }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 bg-white"
-              rows={2}
-              placeholder="What's done manually today, and what could it become?"
-            />
-          </div>
-        )}
-
-        {/* Move to another project board (feedback #4) */}
-        {!isStaged && !task.parentTaskId && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Project board
-            </label>
-            <select
-              value={task.projectId}
-              disabled={moving}
-              onChange={(e) => handleMoveToProject(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-60"
-            >
-              <option value={task.projectId}>
-                {task.project?.name ? `${task.project.name} (current)` : "Current board"}
-              </option>
-              {moveProjects
-                .filter((p) => p.id !== task.projectId)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    → Move to: {p.name}
-                  </option>
-                ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {moving ? "Moving…" : "Pick another board to move this task (and its subtasks) there."}
-            </p>
-          </div>
-        )}
-
-        {/* Assignee */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Assigned To
-          </label>
-          <select
-            value={task.assigneeId || ""}
-            onChange={(e) => handleAssigneeChange(e.target.value || null)}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
+        {/* Rarely-changed settings collapse behind one toggle so the panel
+            stays calm. Opens automatically when the task has guests. */}
+        <div className="border-t border-gray-100 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowMore(!showMore)}
+            aria-expanded={showMore}
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
-            <option value="">Unassigned</option>
-            {members.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.email})
-              </option>
-            ))}
-          </select>
-        </div>
+            <ChevronDownIcon
+              size={15}
+              className={`text-gray-400 transition-transform motion-reduce:transition-none ${
+                showMore ? "" : "-rotate-90"
+              }`}
+            />
+            More settings
+            <span className="font-normal text-xs text-gray-400">
+              · template{!isStaged ? ", guests" : ""}
+              {currentTemplate.fields.automationOpportunity ? ", automation" : ""}
+              {guests.length > 0 && (
+                <span className="text-purple-600"> · {guests.length} guest{guests.length > 1 ? "s" : ""}</span>
+              )}
+            </span>
+          </button>
 
-        {/* Guests — invite anyone to just this task, without project access.
-            Hidden on staged tasks (admin-only imports). */}
-        {!isStaged && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">Guests</label>
-            <p className="text-xs text-gray-400 mb-2">
-              Guests see and comment on this task only — not the rest of the board.
-              @mentioning someone outside the project also adds them here.
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {guests.map((g) => (
-                <span
-                  key={g.userId}
-                  className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full pl-2.5 pr-1 py-1"
+          {showMore && (
+            <div className="mt-4 space-y-5">
+              <div>
+                <label htmlFor="task-template" className="block text-sm font-semibold text-gray-900 mb-2">
+                  Template
+                </label>
+                <Select
+                  id="task-template"
+                  value={template}
+                  onChange={(e) => {
+                    setTemplate(e.target.value);
+                    setHasChanges(true);
+                  }}
                 >
-                  {g.user?.name || "Unknown"}
-                  <button
-                    onClick={() => handleRemoveGuest(g.userId, g.user?.name || "Guest")}
-                    className="h-4 w-4 rounded-full hover:bg-purple-200 text-purple-500 flex items-center justify-center"
-                    title="Remove guest"
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-              <select
-                value=""
-                disabled={addingGuest}
-                onChange={(e) => handleAddGuest(e.target.value)}
-                className="text-xs border border-dashed border-gray-300 rounded-full px-2 py-1 text-gray-500 focus:outline-none focus:border-red-500 bg-transparent"
-              >
-                <option value="">{addingGuest ? "Adding…" : "+ Add guest"}</option>
-                {members
-                  .filter(
-                    (u) =>
-                      !guests.some((g) => g.userId === u.id) &&
-                      !projectMembers.some((m) => m.id === u.id)
-                  )
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
+                  {Object.values(TASK_TEMPLATES).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
                     </option>
                   ))}
-              </select>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">{currentTemplate.description}</p>
+              </div>
+
+              {currentTemplate.fields.automationOpportunity && (
+                <div>
+                  <label
+                    htmlFor="task-automation"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 mb-2"
+                  >
+                    <ZapIcon size={14} className="text-amber-500" /> Automation opportunity
+                  </label>
+                  <textarea
+                    id="task-automation"
+                    value={
+                      updates.automationOpportunity !== undefined
+                        ? updates.automationOpportunity
+                        : task.automationOpportunity || ""
+                    }
+                    onChange={(e) => {
+                      setUpdates({ ...updates, automationOpportunity: e.target.value });
+                      setHasChanges(true);
+                    }}
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white transition focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                    rows={2}
+                    placeholder="What's done manually today, and what could it become?"
+                  />
+                </div>
+              )}
+
+              {/* Guests — invite anyone to just this task, without project
+                  access. Hidden on staged tasks (admin-only imports). */}
+              {!isStaged && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1">Guests</label>
+                  <p className="text-xs text-gray-400 mb-2">
+                    Guests see and comment on this task only — not the rest of the board.
+                    @mentioning someone outside the project also adds them here.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {guests.map((g) => (
+                      <span
+                        key={g.userId}
+                        className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full pl-2.5 pr-1 py-1"
+                      >
+                        {g.user?.name || "Unknown"}
+                        <button
+                          onClick={() => handleRemoveGuest(g.userId, g.user?.name || "Guest")}
+                          className="h-4 w-4 rounded-full hover:bg-purple-200 text-purple-500 flex items-center justify-center"
+                          title="Remove guest"
+                          aria-label={`Remove guest ${g.user?.name || ""}`}
+                        >
+                          <CloseIcon size={10} />
+                        </button>
+                      </span>
+                    ))}
+                    <select
+                      value=""
+                      disabled={addingGuest}
+                      onChange={(e) => handleAddGuest(e.target.value)}
+                      aria-label="Add a guest"
+                      className="text-xs border border-dashed border-gray-300 rounded-full px-2 py-1 text-gray-500 focus:outline-none focus:border-red-400 bg-transparent"
+                    >
+                      <option value="">{addingGuest ? "Adding…" : "+ Add guest"}</option>
+                      {members
+                        .filter(
+                          (u) =>
+                            !guests.some((g) => g.userId === u.id) &&
+                            !projectMembers.some((m) => m.id === u.id)
+                        )
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Status</label>
-          <select
-            value={updates.status !== undefined ? updates.status : task.status}
-            onChange={async (e) => {
-              const newStatus = e.target.value;
-              setUpdates({ ...updates, status: newStatus });
-              setHasChanges(true);
-              try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ status: newStatus }),
-                });
-                if (!response.ok) {
-                  const errorData = await response.json();
-                  throw new Error(errorData.details || "Failed to update status");
-                }
-                const updated = await response.json();
-                // Preserve loaded comments (PATCH response omits them) — item #1.
-                setTask((prev: any) => ({
-                  ...prev,
-                  ...updated,
-                  comments: prev?.comments ?? updated.comments ?? [],
-                }));
-                setUpdates({});
-                setHasChanges(false);
-                onTaskUpdated?.();
-              } catch (err) {
-                console.error("Status update error:", err);
-                setError(err instanceof Error ? err.message : "Failed to update status");
-              }
-            }}
-            className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
-          >
-            <option value="TODO">To Do</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="BLOCKED">Blocked</option>
-            <option value="IN_REVIEW">In Review</option>
-            <option value="DONE">Done</option>
-          </select>
+          )}
         </div>
-
-        {/* Priority */}
-        {currentTemplate.fields.priority && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">Priority</label>
-            <select
-              value={updates.priority !== undefined ? updates.priority : task.priority}
-              onChange={(e) => handlePriorityChange(e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
-            >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-            </select>
-          </div>
-        )}
-
-        {/* Due Date */}
-        {currentTemplate.fields.dueDate && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">Due Date</label>
-            <input
-              type="date"
-              value={
-                updates.dueDate !== undefined
-                  ? updates.dueDate
-                    ? new Date(updates.dueDate).toISOString().split("T")[0]
-                    : ""
-                  : task.dueDate
-                  ? new Date(task.dueDate).toISOString().split("T")[0]
-                  : ""
-              }
-              onChange={(e) => {
-                setUpdates({ ...updates, dueDate: e.target.value || null });
-                setHasChanges(true);
-              }}
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-red-500"
-            />
-          </div>
-        )}
 
         {/* Subtasks */}
         <div>
@@ -1288,7 +1341,7 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                                   destinations={destProjects}
                                   people={members}
                                   defaultAi={true}
-                                  buttonLabel="✨ Make into task for someone"
+                                  buttonLabel="Make into a task for someone"
                                 />
                               </div>
                             )}
@@ -1345,11 +1398,26 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           />
         </div>
 
+        {/* Danger zone — at the far end of the panel, away from the ✕ close
+            button, so deleting is always a deliberate act. */}
+        {task.accessLevel !== "GUEST" && (
+          <div className="border-t border-gray-100 pt-4 flex justify-end">
+            <Button
+              onClick={() => setConfirmDeleteTask(true)}
+              variant="danger"
+              size="sm"
+              leftIcon={<TrashIcon size={14} />}
+            >
+              Delete task
+            </Button>
+          </div>
+        )}
+
         {/* Actions */}
         {hasChanges && (
           <div className="flex gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-6 px-6 pb-1">
             <Button onClick={handleSave} variant="primary" size="lg" className="flex-1">
-              Save Changes
+              Save changes
             </Button>
             <button
               onClick={() => {
@@ -1363,6 +1431,15 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteTask}
+        title="Delete this task?"
+        message="The task with its subtasks, comments and attachments is removed for everyone. This can't be undone."
+        confirmLabel="Delete task"
+        onConfirm={handleDeleteTask}
+        onCancel={() => setConfirmDeleteTask(false)}
+      />
       </div>
     </>
   );

@@ -20,6 +20,34 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.9",
+    date: "2026-07-09",
+    title: "A calmer, cleaner BaliDoc — design polish everywhere",
+    items: [
+      {
+        type: "improved",
+        title: "Tasks you must act on stand out; everything else got quieter",
+        detail:
+          "Dashboard tasks are now compact rows grouped in neat lists, so twice as much fits on screen. The yellow “MEDIUM” badge is gone from every card — Medium is the normal setting, so only High (red) and Low (grey) show a label. Overdue groups are marked in red. On boards, finished cards show a green check instead of strike-through text, and each teammate's avatar now has their own colour.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "The task panel puts the important fields first",
+        detail:
+          "Status, Priority, Due date and Assigned to now sit at the top of the task panel in a tidy grid — no more scrolling past Template to change a status. Rarely-used settings (Template, Automation opportunity, Guests) tuck behind “More settings”, and the Delete button moved to the bottom of the panel so it can't be hit by accident next to Close.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "improved",
+        title: "One consistent look for icons, menus and buttons",
+        detail:
+          "All the little symbols (bell, paperclip, sparkles, search…) are now crisp icons that match on every device instead of emoji that look different per phone. Dropdown menus share one style across the app, deleting anything now asks in a proper BaliDoc-styled dialog instead of a browser popup, and keyboard users get a visible red focus ring everywhere.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.8",
     date: "2026-07-08",
     title: "Notification cleanup + a tidier comment box",

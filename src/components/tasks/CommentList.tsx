@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { formatDistanceToNow } from "date-fns";
 import { renderRichText } from "@/lib/richText";
+import { FileIcon, SmilePlusIcon } from "@/components/ui/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Member {
   id: string;
@@ -170,9 +172,11 @@ export function CommentList({
 
   const [pickerFor, setPickerFor] = useState<string | null>(null);
 
-  const deleteComment = async (commentId: string) => {
-    if (!confirm("Delete this comment? This cannot be undone.")) return;
+  // Styled confirm for comment deletion (replaces window.confirm).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const deleteComment = async (commentId: string) => {
+    setConfirmDeleteId(null);
     setBusyId(commentId);
     setError(null);
     try {
@@ -193,11 +197,26 @@ export function CommentList({
   };
 
   if (loading) {
-    return <div className="text-sm text-gray-500">Loading comments...</div>;
+    // Skeleton rows: content arrives in place instead of a text flash.
+    return (
+      <div className="space-y-3 mb-4" aria-hidden="true">
+        {[0, 1].map((i) => (
+          <div key={i} className="bg-gray-50 rounded p-3 animate-pulse motion-reduce:animate-none">
+            <div className="h-3 w-28 bg-gray-200 rounded mb-2.5" />
+            <div className="h-3 w-full bg-gray-200 rounded mb-1.5" />
+            <div className="h-3 w-2/3 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (comments.length === 0) {
-    return <p className="text-sm text-gray-500">No comments yet.</p>;
+    return (
+      <p className="text-sm text-gray-500 mb-4">
+        No comments yet — write the first one below. Use @ to notify a teammate.
+      </p>
+    );
   }
 
   return (
@@ -285,9 +304,9 @@ export function CommentList({
                         href={`/api/tasks/${taskId}/attachments/${a.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs text-blue-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs text-blue-600 hover:underline"
                       >
-                        📄 {a.fileName}
+                        <FileIcon size={12} className="text-gray-400" /> {a.fileName}
                       </a>
                     )
                   )}
@@ -323,10 +342,11 @@ export function CommentList({
                 <div className="relative">
                   <button
                     onClick={() => setPickerFor(pickerFor === comment.id ? null : comment.id)}
-                    className="text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full border border-transparent hover:border-gray-200 px-1.5 py-0.5 transition"
+                    className="flex items-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full border border-transparent hover:border-gray-200 px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                     title="Add reaction"
+                    aria-label="Add reaction"
                   >
-                    🙂+
+                    <SmilePlusIcon size={14} />
                   </button>
                   {pickerFor === comment.id && (
                     <div className="absolute bottom-full left-0 mb-1 flex gap-0.5 bg-white border border-gray-200 rounded-full shadow-lg px-1.5 py-1 z-10">
@@ -337,7 +357,8 @@ export function CommentList({
                             toggleReaction(comment, e);
                             setPickerFor(null);
                           }}
-                          className="text-base hover:scale-125 transition-transform px-0.5"
+                          className="text-base hover:scale-125 motion-reduce:hover:scale-100 transition-transform px-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+                          aria-label={`React with ${e}`}
                         >
                           {e}
                         </button>
@@ -356,7 +377,7 @@ export function CommentList({
                     Edit
                   </button>
                   <button
-                    onClick={() => deleteComment(comment.id)}
+                    onClick={() => setConfirmDeleteId(comment.id)}
                     disabled={busyId === comment.id}
                     className="text-xs text-gray-500 hover:text-red-600 transition"
                   >
@@ -368,6 +389,15 @@ export function CommentList({
           )}
         </div>
       ))}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete this comment?"
+        message="The comment is removed for everyone and can't be brought back."
+        confirmLabel="Delete comment"
+        onConfirm={() => confirmDeleteId && deleteComment(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

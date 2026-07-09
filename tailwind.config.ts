@@ -9,8 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#2563eb",
-        secondary: "#64748b",
+        // Brand = the red the whole app is built on (see DESIGN.md).
+        // The old scaffold defined primary as a blue (#2563eb), which kept
+        // leaking off-brand blues into new UI — never reintroduce it.
+        brand: {
+          DEFAULT: "#dc2626", // = red-600
+          hover: "#b91c1c", // = red-700
+        },
       },
     },
   },

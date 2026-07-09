@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import {
+  AtSignIcon,
+  BellIcon,
+  CloseIcon,
+  MessageIcon,
+  PencilIcon,
+  RefreshIcon,
+  UserPlusIcon,
+} from "@/components/ui/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Notification {
   id: string;
@@ -14,21 +24,22 @@ interface Notification {
   createdAt: string;
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  COMMENT: "💬",
-  MENTION: "👋",
-  STATUS: "🔄",
-  ASSIGNED: "📌",
-  UPDATE: "✏️",
+// Mentions are red (they ask something of you); everything else stays quiet.
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+  COMMENT: <MessageIcon size={15} className="text-gray-400" />,
+  MENTION: <AtSignIcon size={15} className="text-red-500" />,
+  STATUS: <RefreshIcon size={15} className="text-gray-400" />,
+  ASSIGNED: <UserPlusIcon size={15} className="text-gray-400" />,
+  UPDATE: <PencilIcon size={15} className="text-gray-400" />,
 };
 
 // Filter chips (feedback: "I want to be able to filter my notifications").
 const FILTERS: { key: string; label: string }[] = [
   { key: "ALL", label: "All" },
-  { key: "MENTION", label: "👋 Mentions" },
-  { key: "ASSIGNED", label: "📌 Assigned" },
-  { key: "COMMENT", label: "💬 Comments" },
-  { key: "STATUS", label: "🔄 Status" },
+  { key: "MENTION", label: "Mentions" },
+  { key: "ASSIGNED", label: "Assigned" },
+  { key: "COMMENT", label: "Comments" },
+  { key: "STATUS", label: "Status" },
 ];
 
 // Header bell: unread badge + dropdown. Clicking a notification marks it read
@@ -120,8 +131,9 @@ export function NotificationBell() {
   };
 
   // Empty the whole list in one go (feedback: no more clicking one by one).
+  const [confirmClear, setConfirmClear] = useState(false);
   const clearAll = () => {
-    if (!confirm("Clear all notifications? They can't be brought back.")) return;
+    setConfirmClear(false);
     setItems([]);
     setUnread(0);
     fetch("/api/notifications", {
@@ -135,13 +147,13 @@ export function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={toggle}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition"
+        className="relative p-2.5 rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
         title="Notifications"
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
       >
-        <span className="text-lg leading-none">🔔</span>
+        <BellIcon size={19} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -159,8 +171,8 @@ export function NotificationBell() {
               )}
               {items.length > 0 && (
                 <button
-                  onClick={clearAll}
-                  className="text-xs text-gray-400 hover:text-gray-700 hover:underline"
+                  onClick={() => setConfirmClear(true)}
+                  className="text-xs text-gray-400 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
                   title="Remove all notifications"
                 >
                   Clear all
@@ -175,7 +187,7 @@ export function NotificationBell() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`text-[11px] px-2 py-1 rounded-full whitespace-nowrap transition ${
+                className={`text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
                   filter === f.key
                     ? "bg-red-600 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -212,7 +224,9 @@ export function NotificationBell() {
                       n.readAt ? "opacity-60" : "bg-red-50/40"
                     }`}
                   >
-                    <span className="text-base leading-tight">{TYPE_ICONS[n.type] || "🔔"}</span>
+                    <span className="mt-0.5 flex-shrink-0">
+                      {TYPE_ICONS[n.type] || <BellIcon size={15} className="text-gray-400" />}
+                    </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[13px] text-gray-800 leading-snug">{n.message}</span>
                       <span className="block text-[11px] text-gray-400 mt-0.5">
@@ -225,11 +239,11 @@ export function NotificationBell() {
                         e.stopPropagation();
                         clearOne(n);
                       }}
-                      className="self-start -mr-1.5 -mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-200 flex-shrink-0 transition"
+                      className="self-start -mr-1.5 -mt-1 h-7 w-7 rounded-full flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-200 flex-shrink-0 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       title="Dismiss"
                       aria-label="Dismiss notification"
                     >
-                      ✕
+                      <CloseIcon size={13} />
                     </button>
                   </div>
                 ))
@@ -237,6 +251,15 @@ export function NotificationBell() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear all notifications?"
+        message="This removes every notification in your list. They can't be brought back."
+        confirmLabel="Clear all"
+        onConfirm={clearAll}
+        onCancel={() => setConfirmClear(false)}
+      />
     </div>
   );
 }

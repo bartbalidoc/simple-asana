@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useLayoutEffect } from "react";
+import { CloseIcon, PaperclipIcon, SparklesIcon } from "@/components/ui/icons";
 
 interface Member {
   id: string;
@@ -272,14 +273,15 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
                 key={f.id}
                 className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[11px] rounded-full pl-2 pr-1 py-0.5"
               >
-                📎 {f.fileName}
+                <PaperclipIcon size={11} className="text-gray-400" /> {f.fileName}
                 <button
                   type="button"
                   onClick={() => setPendingFiles((prev) => prev.filter((x) => x.id !== f.id))}
-                  className="h-3.5 w-3.5 rounded-full hover:bg-gray-300 flex items-center justify-center"
+                  className="h-4 w-4 rounded-full hover:bg-gray-300 flex items-center justify-center"
                   title="Remove"
+                  aria-label={`Remove ${f.fileName}`}
                 >
-                  ✕
+                  <CloseIcon size={10} />
                 </button>
               </span>
             ))}
@@ -297,7 +299,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
               }`}
               title="Attach a file to this comment (max 15 MB)"
             >
-              <span aria-hidden>📎</span>
+              <PaperclipIcon size={14} />
               {uploadingFile ? "Uploading…" : "Attach"}
               <input
                 type="file"
@@ -313,7 +315,7 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:text-gray-300 disabled:hover:bg-transparent transition"
               title="Fix spelling & grammar with AI — nothing changes until you approve it"
             >
-              <span aria-hidden>✨</span>
+              <SparklesIcon size={14} />
               {proofreading ? "Checking…" : "Proofread"}
             </button>
           </div>
@@ -333,8 +335,8 @@ export function CommentForm({ taskId, members = [], onCommentAdded }: CommentFor
       {/* Proofread preview — accept to replace the text, or keep the original */}
       {proofread && (
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-3 space-y-2">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-            ✨ Suggested rewrite
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            <SparklesIcon size={12} /> Suggested rewrite
           </p>
           <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
             {proofread.corrected}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FolderIcon, SearchIcon } from "@/components/ui/icons";
 
 interface Result {
   projects: { id: string; name: string }[];
@@ -61,8 +62,8 @@ export function GlobalSearch() {
   return (
     <div ref={boxRef} className="relative w-full max-w-md">
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-          🔍
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <SearchIcon size={15} />
         </span>
         <input
           value={q}
@@ -99,7 +100,9 @@ export function GlobalSearch() {
                   onClick={() => go(`/projects/${p.id}`)}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 flex items-center gap-2"
                 >
-                  <span className="text-gray-400">📁</span>
+                  <span className="text-gray-400">
+                    <FolderIcon size={14} />
+                  </span>
                   <span className="truncate">{p.name}</span>
                 </button>
               ))}

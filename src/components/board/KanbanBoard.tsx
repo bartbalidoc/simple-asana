@@ -7,7 +7,7 @@ import {
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { PlusIcon } from "@/components/ui/icons";
+import { CheckIcon, PlusIcon } from "@/components/ui/icons";
 
 interface Column {
   id: string;
@@ -55,6 +55,22 @@ const initials = (name: string) =>
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+// Avatar identity colors: deterministic per name so the same person always
+// gets the same muted tint. Identity, not state — red stays reserved for
+// actions/alerts (see DESIGN.md).
+const AVATAR_COLORS = [
+  "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-violet-100 text-violet-700",
+  "bg-amber-100 text-amber-700",
+  "bg-teal-100 text-teal-700",
+  "bg-slate-200 text-slate-700",
+];
+export const avatarColor = (name: string) =>
+  AVATAR_COLORS[
+    [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % AVATAR_COLORS.length
+  ];
 
 // New order value for an item inserted at `index` into `list` (list excludes
 // the moved item). Uses fractional ordering so only the moved card is saved.
@@ -150,7 +166,7 @@ export function KanbanBoard({
                   <span className={`h-2.5 w-2.5 rounded-full ${accent(column.name)}`} />
                   {column.name}
                 </h3>
-                <span className="text-xs font-semibold text-gray-500 bg-white rounded-full px-2 py-0.5 border border-gray-200">
+                <span className="text-xs font-semibold text-gray-500 bg-white rounded-full px-2 py-0.5 border border-gray-200 tabular-nums">
                   {list.length}
                 </span>
               </div>
@@ -185,55 +201,60 @@ export function KanbanBoard({
                                   : "border-gray-200 shadow-sm hover:shadow-md hover:border-red-200"
                               }`}
                             >
-                              <p
-                                className={`font-medium text-sm mb-2.5 line-clamp-2 break-words ${
-                                  task.status === "DONE"
-                                    ? "text-gray-400 line-through"
-                                    : "text-gray-900"
-                                }`}
-                                title={task.title || "Untitled Task"}
-                              >
-                                {task.title || "Untitled Task"}
-                              </p>
-
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                                    task.priority === "HIGH"
-                                      ? "bg-red-50 text-red-700"
-                                      : task.priority === "LOW"
-                                      ? "bg-green-50 text-green-700"
-                                      : "bg-amber-50 text-amber-700"
-                                  }`}
-                                >
-                                  <span
-                                    className={`h-1.5 w-1.5 rounded-full ${
-                                      task.priority === "HIGH"
-                                        ? "bg-red-500"
-                                        : task.priority === "LOW"
-                                        ? "bg-green-500"
-                                        : "bg-amber-500"
-                                    }`}
+                              {/* Done: calm fade + green check, no strikethrough
+                                  (struck-through titles read as errors at a glance). */}
+                              <div className="flex items-start gap-1.5 mb-2.5">
+                                {task.status === "DONE" && (
+                                  <CheckIcon
+                                    size={14}
+                                    className="mt-0.5 flex-shrink-0 text-green-600"
                                   />
-                                  {task.priority === "HIGH"
-                                    ? "High"
-                                    : task.priority === "LOW"
-                                    ? "Low"
-                                    : "Medium"}
-                                </span>
-
-                                {task.assignee && (
-                                  <span
-                                    title={task.assignee.name}
-                                    className="flex-shrink-0 h-6 w-6 rounded-full bg-red-100 text-red-700 text-[10px] font-bold flex items-center justify-center"
-                                  >
-                                    {initials(task.assignee.name)}
-                                  </span>
                                 )}
+                                <p
+                                  className={`font-medium text-sm line-clamp-2 break-words ${
+                                    task.status === "DONE" ? "text-gray-500" : "text-gray-900"
+                                  }`}
+                                  title={task.title || "Untitled Task"}
+                                >
+                                  {task.title || "Untitled Task"}
+                                </p>
                               </div>
 
+                              {/* Medium is the default — only High/Low earn a chip,
+                                  so color on the board always means something. */}
+                              {(task.priority === "HIGH" ||
+                                task.priority === "LOW" ||
+                                task.assignee) && (
+                                <div className="flex items-center justify-between gap-2">
+                                  {task.priority === "HIGH" ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                      High
+                                    </span>
+                                  ) : task.priority === "LOW" ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                                      Low
+                                    </span>
+                                  ) : (
+                                    <span />
+                                  )}
+
+                                  {task.assignee && (
+                                    <span
+                                      title={task.assignee.name}
+                                      className={`flex-shrink-0 h-6 w-6 rounded-full text-[10px] font-bold flex items-center justify-center ${avatarColor(
+                                        task.assignee.name
+                                      )}`}
+                                    >
+                                      {initials(task.assignee.name)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
                               {((task.subtasks && task.subtasks.length > 0) || task.dueDate) && (
-                                <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-gray-100 text-[11px]">
+                                <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-gray-100 text-[11px] tabular-nums">
                                   {task.subtasks && task.subtasks.length > 0 && (
                                     <span className="text-gray-500">
                                       ✓ {task.subtasks.filter((s) => s.status === "DONE").length}/
@@ -254,8 +275,8 @@ export function KanbanBoard({
                     })}
                     {provided.placeholder}
                     {list.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="text-xs text-gray-300 text-center py-6 border border-dashed border-gray-200 rounded-xl">
-                        No tasks yet
+                      <div className="text-xs text-gray-400 text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                        No tasks yet — drag one here or use “Add task”
                       </div>
                     )}
                   </div>

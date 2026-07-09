@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SparklesIcon } from "@/components/ui/icons";
 
 interface Dest {
   id: string;
@@ -133,7 +134,7 @@ export function DistributeControl({
           checked={ai}
           onChange={(e) => setAi(e.target.checked)}
         />
-        ✨ AI-generate full task
+        <SparklesIcon size={12} className="text-red-500" /> AI-generate full task
       </label>
       <button
         onClick={submit}

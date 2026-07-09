@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { CloseIcon, FileIcon, PaperclipIcon } from "@/components/ui/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface AttachmentListProps {
   taskId: string;
@@ -98,7 +100,11 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
     }
   };
 
+  // Deleting a file is destructive — confirm first (there was no confirm before).
+  const [confirmDelete, setConfirmDelete] = useState<Attachment | null>(null);
+
   const handleDelete = async (attachmentId: string) => {
+    setConfirmDelete(null);
     try {
       const response = await fetch(
         `/api/tasks/${taskId}/attachments?attachmentId=${attachmentId}`,
@@ -122,7 +128,12 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
   };
 
   if (loading) {
-    return <div className="text-sm text-gray-500">Loading attachments...</div>;
+    return (
+      <div className="space-y-2" aria-hidden="true">
+        <div className="h-8 w-28 bg-gray-100 rounded-md animate-pulse motion-reduce:animate-none" />
+        <div className="h-9 w-full bg-gray-50 rounded animate-pulse motion-reduce:animate-none" />
+      </div>
+    );
   }
 
   return (
@@ -130,9 +141,10 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
       <div>
         <label
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-md cursor-pointer text-xs font-medium transition"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-md cursor-pointer text-xs font-medium transition focus-within:ring-2 focus-within:ring-red-400"
         >
-          <span>📎 Attach file</span>
+          <PaperclipIcon size={13} className="text-gray-500" />
+          Attach file
           <input
             type="file"
             onChange={handleFileUpload}
@@ -140,7 +152,7 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
             className="hidden"
           />
         </label>
-        {uploading && <span className="text-xs text-gray-500 ml-2">Uploading...</span>}
+        {uploading && <span className="text-xs text-gray-500 ml-2">Uploading…</span>}
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -158,18 +170,21 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
                 href={`/api/tasks/${taskId}/attachments/${attachment.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-blue-600 hover:underline truncate flex items-center gap-2"
+                className="flex-1 min-w-0 text-blue-600 hover:underline truncate flex items-center gap-2"
               >
-                <span>📄</span>
+                <FileIcon size={14} className="flex-shrink-0 text-gray-400" />
                 <span className="truncate">{attachment.fileName}</span>
-                <span className="text-gray-500 text-xs">({formatBytes(attachment.sizeBytes)})</span>
+                <span className="text-gray-500 text-xs whitespace-nowrap">
+                  ({formatBytes(attachment.sizeBytes)})
+                </span>
               </a>
               <button
-                onClick={() => handleDelete(attachment.id)}
-                className="ml-2 text-gray-400 hover:text-red-600 transition"
+                onClick={() => setConfirmDelete(attachment)}
+                className="ml-2 h-7 w-7 flex items-center justify-center rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                 title="Delete"
+                aria-label={`Delete ${attachment.fileName}`}
               >
-                ✕
+                <CloseIcon size={13} />
               </button>
             </div>
           ))}
@@ -179,6 +194,19 @@ export function AttachmentList({ taskId }: AttachmentListProps) {
       <p className="text-xs text-gray-500">
         Files are stored securely — click a file to view or download it.
       </p>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete this file?"
+        message={
+          confirmDelete
+            ? `"${confirmDelete.fileName}" is removed from the task for everyone.`
+            : ""
+        }
+        confirmLabel="Delete file"
+        onConfirm={() => confirmDelete && handleDelete(confirmDelete.id)}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

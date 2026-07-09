@@ -6,7 +6,8 @@ import { KanbanBoard } from "@/components/board/KanbanBoard";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { SmartTaskDiscovery } from "@/components/tasks/SmartTaskDiscovery";
 import { Button } from "@/components/ui/Button";
-import { PlusIcon, SparklesIcon, UsersIcon, TrashIcon } from "@/components/ui/icons";
+import { PlusIcon, SearchIcon, SparklesIcon, UsersIcon, TrashIcon } from "@/components/ui/icons";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 
 interface Project {
@@ -304,7 +305,7 @@ export default function ProjectPage() {
             }}
             leftIcon={<PlusIcon size={16} />}
           >
-            Quick Task
+            Quick task
           </Button>
           <Button
             active={showGuidedForm}
@@ -314,7 +315,7 @@ export default function ProjectPage() {
             }}
             leftIcon={<SparklesIcon size={16} />}
           >
-            AI Task Creator
+            AI task creator
           </Button>
           <Button
             active={showMembers}
@@ -328,7 +329,7 @@ export default function ProjectPage() {
 
       {showMembers && (
         <div className="mb-6 bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Project Members</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Project members</h3>
 
           <div className="space-y-2 mb-4">
             {(project.members || []).map((m: any) => (
@@ -358,10 +359,11 @@ export default function ProjectPage() {
           )}
 
           <form onSubmit={handleAddMember} className="flex gap-2">
-            <select
+            <Select
               value={memberEmail}
               onChange={(e) => setMemberEmail(e.target.value)}
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-red-500"
+              aria-label="Choose a person to assign"
+              containerClassName="relative flex-1"
             >
               <option value="">Choose a person to assign…</option>
               {allUsers
@@ -374,7 +376,7 @@ export default function ProjectPage() {
                     {u.name} ({u.email})
                   </option>
                 ))}
-            </select>
+            </Select>
             <Button
               type="submit"
               variant="primary"
@@ -441,8 +443,8 @@ export default function ProjectPage() {
       {/* Search + assignee filter */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-            🔍
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <SearchIcon size={15} />
           </span>
           <input
             type="text"
@@ -452,10 +454,11 @@ export default function ProjectPage() {
             className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-red-500"
           />
         </div>
-        <select
+        <Select
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-red-500"
+          aria-label="Filter tasks by assignee"
+          containerClassName="relative inline-block"
         >
           <option value="">Everyone</option>
           <option value="__unassigned__">Unassigned</option>
@@ -464,7 +467,7 @@ export default function ProjectPage() {
               {m.user?.name}
             </option>
           ))}
-        </select>
+        </Select>
         {(search || assigneeFilter) && (
           <button
             onClick={() => {
