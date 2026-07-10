@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11",
+    date: "2026-07-10",
+    title: "Two bug fixes from Sidney's reports",
+    items: [
+      {
+        type: "fixed",
+        title: "Subtask notifications now open the subtask itself",
+        detail:
+          "Clicking a notification about a subtask (a comment, mention or update) used to open the parent task, leaving you to hunt for the right subtask. It now takes you straight to that subtask — with the “Back to parent task” button there if you need the bigger picture.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "fixed",
+        title: "The guest list shows the whole team again",
+        detail:
+          "When adding a guest to a task, people who are already members of that board were hidden from the dropdown, which looked like they were missing. Everyone is now listed — teammates already on the board simply show as “already on this board” and can't be double-added, since they see everything there anyway.",
+        requestedBy: "Sidney",
+      },
+    ],
+  },
+  {
     version: "1.10",
     date: "2026-07-09",
     title: "Archive finished tasks to Drive + see what's inside subtasks",

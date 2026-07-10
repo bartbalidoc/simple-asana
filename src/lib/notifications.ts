@@ -127,7 +127,11 @@ export async function notifyTaskCollaborators(args: {
       actorName: args.actorName,
       type: args.type,
       message: args.message,
-      taskId: collab.anchorTaskId,
+      // Deep-link to the task the event actually happened on — for a subtask
+      // that's the subtask itself (the panel opens it directly with a "Back to
+      // parent" button). Anchoring to the parent forced people to hunt for the
+      // right subtask (Sidney's bug report).
+      taskId: args.taskId,
       projectId: collab.projectId,
     });
   } catch (err) {

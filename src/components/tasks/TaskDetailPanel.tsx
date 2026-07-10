@@ -1302,17 +1302,21 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                       className="text-xs border border-dashed border-gray-300 rounded-full px-2 py-1 text-gray-500 focus:outline-none focus:border-red-400 bg-transparent"
                     >
                       <option value="">{addingGuest ? "Adding…" : "+ Add guest"}</option>
+                      {/* Show the WHOLE team (Sidney's bug report: hiding board
+                          members read as "people are missing"). Members are
+                          listed but unselectable, with the reason inline —
+                          they already see everything on this board. */}
                       {members
-                        .filter(
-                          (u) =>
-                            !guests.some((g) => g.userId === u.id) &&
-                            !projectMembers.some((m) => m.id === u.id)
-                        )
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
+                        .filter((u) => !guests.some((g) => g.userId === u.id))
+                        .map((u) => {
+                          const onBoard = projectMembers.some((m) => m.id === u.id);
+                          return (
+                            <option key={u.id} value={u.id} disabled={onBoard}>
+                              {u.name}
+                              {onBoard ? " — already on this board" : ""}
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
                 </div>

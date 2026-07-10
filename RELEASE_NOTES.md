@@ -7,6 +7,13 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v1.11 — 2026-07-10 · Two bug fixes from Sidney's reports
+
+- **[Fixed] Subtask notifications now open the subtask itself** _(requested by Sidney)_
+  Clicking a notification about a subtask (a comment, mention or update) used to open the parent task, leaving you to hunt for the right subtask. It now takes you straight to that subtask — with the “Back to parent task” button there if you need the bigger picture.
+- **[Fixed] The guest list shows the whole team again** _(requested by Sidney)_
+  When adding a guest to a task, people who are already members of that board were hidden from the dropdown, which looked like they were missing. Everyone is now listed — teammates already on the board simply show as “already on this board” and can't be double-added, since they see everything there anyway.
+
 ## v1.10 — 2026-07-09 · Archive finished tasks to Drive + see what's inside subtasks
 
 - **[New] Summarize & archive done tasks to Google Drive** _(requested by Bart)_

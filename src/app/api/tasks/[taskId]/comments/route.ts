@@ -71,13 +71,15 @@ async function notifyMentions(args: {
       });
     }
 
-    // In-app notification, deep-linked to the task (parent when a subtask).
+    // In-app notification, deep-linked to the exact task the mention is on —
+    // same target the email link below uses. (Guest ACCESS stays anchored on
+    // the parent above; only the link goes straight to the subtask.)
     await createNotifications({
       recipientIds: mentioned.map((u) => u.id),
       actorName: args.authorName,
       type: "MENTION",
       message: `${args.authorName} mentioned you on "${taskTitle}"`,
-      taskId: anchorTaskId,
+      taskId: args.taskId,
       projectId: task.projectId,
     });
 
