@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.12",
+    date: "2026-07-11",
+    title: "AI task creator: the Next button stays put",
+    items: [
+      {
+        type: "fixed",
+        title: "No more scrolling to find “Next” while creating a task",
+        detail:
+          "In the AI task creator, every answered question stayed on screen, so the Next button crept further down with each step. The Back/Next/Create bar now sticks to the bottom of your screen the whole way through (with a step counter), and each new question scrolls into view automatically.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.11",
     date: "2026-07-10",
     title: "Two bug fixes from Sidney's reports",

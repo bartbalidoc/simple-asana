@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v1.12 — 2026-07-11 · AI task creator: the Next button stays put
+
+- **[Fixed] No more scrolling to find “Next” while creating a task** _(requested by Bart)_
+  In the AI task creator, every answered question stayed on screen, so the Next button crept further down with each step. The Back/Next/Create bar now sticks to the bottom of your screen the whole way through (with a step counter), and each new question scrolls into view automatically.
+
 ## v1.11 — 2026-07-10 · Two bug fixes from Sidney's reports
 
 - **[Fixed] Subtask notifications now open the subtask itself** _(requested by Sidney)_
