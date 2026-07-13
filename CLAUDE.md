@@ -1,4 +1,6 @@
-# BaliDoc Project Hub — agent notes
+# Plendex (by BaliDoc) — agent notes
+
+The app is **Plendex** (renamed from "BaliDoc Project Hub" in v2.0); **BaliDoc** is the clinic/company. Brand marks live in `src/components/brand/` — `PlendexLogo` (app) and `BaliDocLogo` (company heart, still used for company contexts).
 
 - **Any UI/UX work**: read `PRODUCT.md` (who/why, register: product) and `DESIGN.md` (visual contract — colors, type, component vocabulary, bans) before designing or restyling anything. Converge existing code toward DESIGN.md.
 - Design skills installed in `.claude/skills/`: `impeccable` (design/critique/polish framework — commands like `/impeccable critique|polish|audit <target>`) and `web-design-guidelines` (Vercel a11y/UX compliance checklist).

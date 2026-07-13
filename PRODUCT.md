@@ -10,7 +10,7 @@ The BaliDoc clinic team (~10 people): admins (Bart, Sidney) coordinating everyth
 
 ## Product Purpose
 
-BaliDoc Project Hub is the clinic's self-hosted project management tool (an Asana replacement, HIPAA-minded: encrypted fields, audit logs). It exists so the team plans, assigns, and tracks all clinic/ops/marketing work in one private place. Success = every teammate checks their Dashboard/My Day daily and nothing falls through the cracks.
+The app is named **Plendex**; **BaliDoc** is the clinic/company behind it ("Plendex by BaliDoc"). **Plendex** (by BaliDoc) is the clinic's self-hosted project management tool (an Asana replacement, HIPAA-minded: encrypted fields, audit logs). It exists so the team plans, assigns, and tracks all clinic/ops/marketing work in one private place. Success = every teammate checks their Dashboard/My Day daily and nothing falls through the cracks.
 
 ## Brand Personality
 

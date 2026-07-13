@@ -25,7 +25,7 @@ export default function ReleaseNotesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Release Notes</h1>
         <p className="text-sm text-gray-500 mt-1">
-          What&apos;s new in the Project Hub. Newest updates first.
+          What&apos;s new in Plendex. Newest updates first.
         </p>
       </div>
 

@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.0",
+    date: "2026-07-13",
+    title: "Say hello to Plendex ✨",
+    items: [
+      {
+        type: "new",
+        title: "Our project hub has a name: Plendex, by BaliDoc",
+        detail:
+          "Same app, same work, same login — new badge. You'll see the new Plendex mark (a little board in a red tile) on the login screen, in the sidebar and in your browser tab, always with “by BaliDoc” underneath: the clinic's heart isn't going anywhere. Nothing about how you work changes, and a small one-time banner inside the app tells the team about the name.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "1.12",
     date: "2026-07-11",
     title: "AI task creator: the Next button stays put",

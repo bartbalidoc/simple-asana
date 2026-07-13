@@ -1,6 +1,6 @@
 # Design
 
-Visual system for BaliDoc Project Hub. Register: **product** (app UI — design serves the task). Stack: Next.js 14 + Tailwind CSS, no component library. This file is the contract: match what's here; when current code contradicts it, converge toward this file.
+Visual system for **Plendex** (by BaliDoc — the clinic/company; "BaliDoc" in older notes = this app). Register: **product** (app UI — design serves the task). Stack: Next.js 14 + Tailwind CSS, no component library. This file is the contract: match what's here; when current code contradicts it, converge toward this file.
 
 ## Theme
 
@@ -48,6 +48,10 @@ Rules:
 - Shadows: `shadow-sm` on raised cards, `shadow-lg` only on floating layers (menus, dialogs). Never border + big shadow together.
 - Density: list rows and board cards stay compact — one idea per line, no dead vertical space. Tables/boards may run wide; prose column ≤ ~70ch.
 - Sidebars/toolbars sit on the second neutral (`gray-50`/ground) so the white content surface reads as the working area.
+
+## Brand marks
+
+`src/components/brand/PlendexLogo.tsx` — the app mark (red gradient tile + three board columns) with "Plendex" wordmark and optional "by BaliDoc" credit; `light` variant for red surfaces. `BaliDocLogo.tsx` — the company heart, kept for company contexts. The two share the red gradient family.
 
 ## Components
 

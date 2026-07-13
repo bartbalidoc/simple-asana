@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.0 — 2026-07-13 · Say hello to Plendex ✨
+
+- **[New] Our project hub has a name: Plendex, by BaliDoc** _(requested by Bart)_
+  Same app, same work, same login — new badge. You'll see the new Plendex mark (a little board in a red tile) on the login screen, in the sidebar and in your browser tab, always with “by BaliDoc” underneath: the clinic's heart isn't going anywhere. Nothing about how you work changes, and a small one-time banner inside the app tells the team about the name.
+
 ## v1.12 — 2026-07-11 · AI task creator: the Next button stays put
 
 - **[Fixed] No more scrolling to find “Next” while creating a task** _(requested by Bart)_

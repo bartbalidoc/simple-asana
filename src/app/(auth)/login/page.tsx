@@ -2,7 +2,7 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
+import { PlendexLogo } from "@/components/brand/PlendexLogo";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,14 +65,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Brand panel (large screens) */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-rose-500 via-red-600 to-red-800 text-white p-12 flex-col justify-between">
-        <BaliDocLogo size={44} showText light />
+        <PlendexLogo size={46} showText showTagline light />
         <div>
           <h1 className="text-4xl font-bold leading-tight">
             Your team&apos;s work,
             <br /> beautifully organized.
           </h1>
           <p className="mt-4 text-white/80 max-w-md">
-            Projects, tasks and subtasks in one secure hub — built for the BaliDoc team.
+            Plendex is where the BaliDoc team plans projects, tasks and subtasks —
+            one secure hub for everything we do.
           </p>
           <ul className="mt-8 space-y-3 text-white/90">
             <li className="flex items-center gap-2">✓ A board for every project</li>
@@ -80,14 +81,16 @@ export default function LoginPage() {
             <li className="flex items-center gap-2">✓ Encrypted &amp; audit-logged</li>
           </ul>
         </div>
-        <p className="text-white/60 text-xs tracking-[0.18em]">YOUR HEALTH · OUR PRIORITY</p>
+        <p className="text-white/60 text-xs tracking-[0.18em]">
+          PLENDEX BY BALIDOC · YOUR HEALTH · OUR PRIORITY
+        </p>
       </div>
 
       {/* Form panel */}
       <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex flex-col items-center mb-6">
-            <BaliDocLogo size={52} showText showTagline />
+            <PlendexLogo size={52} showText showTagline />
           </div>
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-1">
@@ -95,8 +98,8 @@ export default function LoginPage() {
             </h2>
             <p className="text-sm text-gray-500 mb-6">
               {mode === "login"
-                ? "Sign in to your BaliDoc workspace."
-                : "Join your team's BaliDoc workspace."}
+                ? "Sign in to your Plendex workspace."
+                : "Join your team on Plendex."}
             </p>
 
         {error && (
@@ -109,7 +112,7 @@ export default function LoginPage() {
           {mode === "register" && (
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
+                Full name
               </label>
               <input
                 id="name"
@@ -163,12 +166,12 @@ export default function LoginPage() {
             {isLoading ? (
               <>
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                Please wait...
+                Please wait…
               </>
             ) : mode === "login" ? (
-              "Sign In"
+              "Sign in"
             ) : (
-              "Create Account"
+              "Create account"
             )}
           </button>
         </form>

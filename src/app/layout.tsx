@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BaliDoc · Project Hub",
-  description: "BaliDoc internal project & task management — Your Health, Our Priority",
+  title: "Plendex · by BaliDoc",
+  description: "Plendex — the BaliDoc team's project & task hub. Your Health, Our Priority.",
 };
 
 export default function RootLayout({

@@ -6,7 +6,8 @@ import { SidebarNav } from "./SidebarNav";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { SignOutButton } from "./SignOutButton";
-import { BaliDocLogo } from "@/components/brand/BaliDocLogo";
+import { PlendexLogo } from "@/components/brand/PlendexLogo";
+import { PlendexAnnouncement } from "./PlendexAnnouncement";
 
 // Responsive app chrome. Desktop (lg+): the classic fixed sidebar. Small
 // screens: the sidebar becomes a slide-in drawer behind a hamburger, the
@@ -40,8 +41,8 @@ export function AppShell({
 
   const sidebarInner = (
     <>
-      <div className="px-5 py-5 border-b border-gray-100">
-        <BaliDocLogo size={34} showText />
+      <div className="px-5 py-4 border-b border-gray-100">
+        <PlendexLogo size={34} showText showTagline />
       </div>
       <SidebarNav isAdmin={isAdmin} />
       {/* On phones the drawer is also where your account lives. */}
@@ -123,6 +124,9 @@ export function AppShell({
             </div>
           </div>
         </header>
+
+        {/* One-time "we have a name" banner — dismissible, never blocks work. */}
+        <PlendexAnnouncement />
 
         <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>

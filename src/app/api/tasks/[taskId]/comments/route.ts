@@ -101,11 +101,11 @@ async function notifyMentions(args: {
         sendMail({
           to: u.email as string,
           subject: `${args.authorName} mentioned you on "${taskTitle}"`,
-          text: `${args.authorName} mentioned you in a comment on "${taskTitle}":\n\n"${snippet}"\n\nOpen the task:\n${link}\n\n— BaliDoc`,
+          text: `${args.authorName} mentioned you in a comment on "${taskTitle}":\n\n"${snippet}"\n\nOpen the task:\n${link}\n\n— Plendex · by BaliDoc`,
           html: `<p><strong>${esc(args.authorName)}</strong> mentioned you in a comment on <strong>${esc(taskTitle)}</strong>:</p>
 <blockquote style="border-left:3px solid #e11d48;margin:0;padding:6px 12px;color:#374151">${esc(snippet).replace(/\n/g, "<br>")}</blockquote>
 <p><a href="${link}" style="color:#e11d48">Open the task →</a></p>
-<p style="color:#9ca3af;font-size:12px">— BaliDoc</p>`,
+<p style="color:#9ca3af;font-size:12px">— Plendex · by BaliDoc</p>`,
         })
       )
     );

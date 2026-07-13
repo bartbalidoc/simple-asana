@@ -146,7 +146,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     // ---- The archive document -------------------------------------------
     const html = `
 <h1>${esc(title)}</h1>
-<p><i>Archived from BaliDoc Project Hub on ${fmtDate(new Date())}</i></p>
+<p><i>Archived from Plendex (BaliDoc) on ${fmtDate(new Date())}</i></p>
 <table border="1" cellpadding="4">
   <tr><td><b>Project</b></td><td>${esc(task.project?.name || "—")}</td></tr>
   <tr><td><b>Assigned to</b></td><td>${esc(task.assignee?.name || "Unassigned")}</td></tr>
