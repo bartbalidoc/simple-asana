@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.1",
+    date: "2026-07-22",
+    title: "Your subtasks from other people's tasks, on your dashboard",
+    items: [
+      {
+        type: "new",
+        title: "Subtasks assigned to you now show in “My tasks”",
+        detail:
+          "If someone gives you a subtask inside their task — like one step of a bigger job — it now appears on your dashboard alongside your own tasks, marked with ↳ and the name of the task it belongs to. Click it to jump straight to that subtask. No more finding your steps only through notifications.",
+        requestedBy: "Meilinda",
+      },
+    ],
+  },
+  {
     version: "2.0",
     date: "2026-07-13",
     title: "Say hello to Plendex ✨",

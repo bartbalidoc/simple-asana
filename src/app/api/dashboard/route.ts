@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const isAdmin = session.user.role === "ADMIN";
 
-    const [projects, tasks, guestRows] = await Promise.all([
+    const [projects, tasks, guestRows, mySubtasks] = await Promise.all([
       prisma.project.findMany({
         // Exclude hidden staging (Asana import) projects from everyone's dashboard.
         where: isAdmin
@@ -56,6 +56,21 @@ export async function GET(req: NextRequest) {
           },
         },
       }),
+      // Subtasks assigned to this user inside OTHER tasks (Meilinda's feedback:
+      // "how can someone see their subtasks in other people's tasks?"). Shown
+      // on the dashboard with their parent task for context.
+      prisma.task.findMany({
+        where: {
+          assigneeId: session.user.id,
+          parentTaskId: { not: null },
+          project: { isStaging: false },
+        },
+        include: {
+          project: { select: { id: true, name: true } },
+          parentTask: { select: { titleEnc: true } },
+        },
+        orderBy: { dueDate: "asc" },
+      }),
     ]);
 
     const projectSummaries = projects.map((p) => ({
@@ -87,6 +102,27 @@ export async function GET(req: NextRequest) {
       ...guestRows
         .filter((g) => !assignedIds.has(g.task.id))
         .map((g) => summarize(g.task as (typeof tasks)[number], true)),
+      // Your pieces of other people's tasks, labeled with the parent title.
+      ...mySubtasks.map((st) => ({
+        id: st.id,
+        title: decrypt(st.titleEnc),
+        status: st.status,
+        priority: st.priority,
+        dueDate: st.dueDate,
+        projectId: st.project?.id,
+        projectName: st.project?.name,
+        subtotal: 0,
+        subdone: 0,
+        guest: false,
+        isSubtask: true,
+        parentTitle: (() => {
+          try {
+            return st.parentTask ? decrypt(st.parentTask.titleEnc) : null;
+          } catch {
+            return null;
+          }
+        })(),
+      })),
     ];
 
     return NextResponse.json({

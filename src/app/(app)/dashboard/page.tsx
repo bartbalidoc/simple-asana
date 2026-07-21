@@ -22,6 +22,9 @@ interface DashTask {
   subdone: number;
   // Invited to this one task without project access.
   guest?: boolean;
+  // A subtask assigned to you inside someone else's task.
+  isSubtask?: boolean;
+  parentTitle?: string | null;
 }
 
 interface DashProject {
@@ -269,12 +272,25 @@ export default function DashboardPage() {
                         className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition focus:outline-none focus-visible:bg-red-50/50"
                       >
                         <div className="min-w-0 flex-1 flex items-center gap-2">
+                          {t.isSubtask && (
+                            <span className="text-gray-400 flex-shrink-0" title="Subtask">
+                              ↳
+                            </span>
+                          )}
                           <p
                             className="font-medium text-sm text-gray-900 truncate"
                             title={t.title}
                           >
                             {t.title}
                           </p>
+                          {t.isSubtask && t.parentTitle && (
+                            <span
+                              className="text-[11px] text-gray-400 truncate max-w-[200px]"
+                              title={`Subtask of “${t.parentTitle}”`}
+                            >
+                              in “{t.parentTitle}”
+                            </span>
+                          )}
                           {t.subtotal > 0 && (
                             <span className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums">
                               ✓ {t.subdone}/{t.subtotal}

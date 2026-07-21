@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.1 — 2026-07-22 · Your subtasks from other people's tasks, on your dashboard
+
+- **[New] Subtasks assigned to you now show in “My tasks”** _(requested by Meilinda)_
+  If someone gives you a subtask inside their task — like one step of a bigger job — it now appears on your dashboard alongside your own tasks, marked with ↳ and the name of the task it belongs to. Click it to jump straight to that subtask. No more finding your steps only through notifications.
+
 ## v2.0 — 2026-07-13 · Say hello to Plendex ✨
 
 - **[New] Our project hub has a name: Plendex, by BaliDoc** _(requested by Bart)_
