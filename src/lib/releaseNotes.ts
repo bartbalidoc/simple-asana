@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.2",
+    date: "2026-07-23",
+    title: "Recurring tasks — set it once, it comes back every time",
+    items: [
+      {
+        type: "new",
+        title: "Tasks that repeat every week or month",
+        detail:
+          "Open a task and use the new “Repeat” setting: every week (pick a weekday) or every month (pick a day, or the last day of the month). When the date comes, Plendex automatically drops a fresh copy of the task into the “To Do” column of the same board — early in the morning, Bali time — so it's waiting for the team. You'll always see exactly one live copy with a ↻ mark; last month's copy simply stays as a finished task you can archive.",
+        requestedBy: "Meilinda",
+      },
+      {
+        type: "new",
+        title: "The whole handover chain comes back too",
+        detail:
+          "A repeating task brings its subtasks with it, each keeping its own assignee — so a monthly chain like “Asima checks the schedule → Fafa monitors → Mei approves” regenerates complete every month. Everyone with a step gets a notification and sees it on their dashboard, so nothing is forgotten.",
+        requestedBy: "Meilinda",
+      },
+    ],
+  },
+  {
     version: "2.1",
     date: "2026-07-22",
     title: "Your subtasks from other people's tasks, on your dashboard",
