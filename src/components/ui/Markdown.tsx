@@ -2,15 +2,18 @@
 
 import React from "react";
 
-// Minimal markdown renderer for task descriptions (feedback: lists, bold,
-// italic, etc. with a proper preview). Renders React elements — never raw
-// HTML — so pasted content cannot inject markup. Supported: **bold**,
-// *italic*, `code`, [links](https://…), # headings, - / 1. lists, paragraphs.
+// Minimal markdown renderer for task descriptions + the Welcome Hub (feedback:
+// lists, bold, italic, headings, links, highlight with a proper preview).
+// Renders React elements — never raw HTML — so authored content cannot inject
+// markup. Links are constrained to https?:// (no javascript: URLs). Supported:
+// **bold**, *italic*, `code`, ==highlight==, [links](https://…), # headings,
+// - / 1. lists, paragraphs.
 
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
-  // Tokenize bold / italic / code / links, left to right.
-  const pattern = /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))/g;
+  // Tokenize bold / italic / code / highlight / links, left to right.
+  const pattern =
+    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|==([^=]+)==|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -25,16 +28,24 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
           {m[4]}
         </code>
       );
+    // ==highlight== — a fixed marker style (no arbitrary color, so no CSS
+    // injection). Covers "emphasis / coloring" for onboarding docs safely.
     else if (m[5] !== undefined)
+      out.push(
+        <mark key={key} className="bg-yellow-100 text-yellow-900 rounded px-0.5">
+          {renderInline(m[5], key)}
+        </mark>
+      );
+    else if (m[6] !== undefined)
       out.push(
         <a
           key={key}
-          href={m[6]}
+          href={m[7]}
           target="_blank"
           rel="noopener noreferrer"
           className="text-red-600 hover:underline break-all"
         >
-          {m[5]}
+          {m[6]}
         </a>
       );
     last = m.index + m[0].length;

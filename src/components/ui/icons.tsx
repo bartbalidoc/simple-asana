@@ -210,3 +210,67 @@ export const CalendarIcon = ({ size = 16, className = "" }: IconProps) =>
       <line x1="3" y1="10" x2="21" y2="10" />
     </>
   ));
+
+export const BoldIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z" />
+  ));
+
+export const ItalicIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <line x1="19" y1="4" x2="10" y2="4" />
+      <line x1="14" y1="20" x2="5" y2="20" />
+      <line x1="15" y1="4" x2="9" y2="20" />
+    </>
+  ));
+
+export const HeadingIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <line x1="6" y1="4" x2="6" y2="20" />
+      <line x1="18" y1="4" x2="18" y2="20" />
+      <line x1="6" y1="12" x2="18" y2="12" />
+    </>
+  ));
+
+export const ListIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </>
+  ));
+
+export const ListOrderedIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <line x1="10" y1="6" x2="21" y2="6" />
+      <line x1="10" y1="12" x2="21" y2="12" />
+      <line x1="10" y1="18" x2="21" y2="18" />
+      <path d="M4 6h1v4" />
+      <path d="M4 10h2" />
+      <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+    </>
+  ));
+
+export const LinkIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </>
+  ));
+
+export const HighlighterIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <path d="M9 11l-6 6v3h3l6-6" />
+      <path d="M12 8l4 4" />
+      <path d="M17 3l4 4-9 9-4-4z" />
+    </>
+  ));

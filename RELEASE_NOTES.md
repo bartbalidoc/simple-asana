@@ -7,6 +7,13 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.3 — 2026-07-23 · Write proper onboarding notes on the Welcome Hub
+
+- **[New] A rich text editor for the Welcome Hub** _(requested by Sidney)_
+  Admins can now add a formatted “onboarding notes” block at the top of the Welcome Hub — not just a link. There's a simple toolbar: click for headings, bold, italic, highlight, bulleted or numbered lists, and links on specific words (no need to know any codes). A Write/Preview toggle shows exactly how it'll look before you save. Everyone on the team sees the formatted notes when they open the Welcome Hub.
+- **[Improved] Highlight important words anywhere you write** _(requested by Sidney)_
+  The same formatting — including a new ==highlight== marker — now works in task and subtask descriptions too, so you can make the important line stand out.
+
 ## v2.2 — 2026-07-23 · Recurring tasks — set it once, it comes back every time
 
 - **[New] Tasks that repeat every week or month** _(requested by Meilinda)_

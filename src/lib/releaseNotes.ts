@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.3",
+    date: "2026-07-23",
+    title: "Write proper onboarding notes on the Welcome Hub",
+    items: [
+      {
+        type: "new",
+        title: "A rich text editor for the Welcome Hub",
+        detail:
+          "Admins can now add a formatted “onboarding notes” block at the top of the Welcome Hub — not just a link. There's a simple toolbar: click for headings, bold, italic, highlight, bulleted or numbered lists, and links on specific words (no need to know any codes). A Write/Preview toggle shows exactly how it'll look before you save. Everyone on the team sees the formatted notes when they open the Welcome Hub.",
+        requestedBy: "Sidney",
+      },
+      {
+        type: "improved",
+        title: "Highlight important words anywhere you write",
+        detail:
+          "The same formatting — including a new ==highlight== marker — now works in task and subtask descriptions too, so you can make the important line stand out.",
+        requestedBy: "Sidney",
+      },
+    ],
+  },
+  {
     version: "2.2",
     date: "2026-07-23",
     title: "Recurring tasks — set it once, it comes back every time",

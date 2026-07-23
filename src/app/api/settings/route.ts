@@ -36,9 +36,22 @@ export async function PUT(req: NextRequest) {
     }
     const body = await req.json();
     const key = typeof body?.key === "string" ? body.key : "";
-    const value = typeof body?.value === "string" ? body.value.slice(0, 2000) : "";
+    // Rich text blocks (e.g. welcome.intro) need room for a real document;
+    // simple settings like card links stay small.
+    const cap = key === "welcome.intro" ? 20000 : 2000;
+    const value = typeof body?.value === "string" ? body.value.slice(0, cap) : "";
     if (!ALLOWED_PREFIXES.some((p) => key.startsWith(p))) {
       return NextResponse.json({ error: "Unknown settings key" }, { status: 400 });
+    }
+    // Defense-in-depth: every welcome.* key except the rich-text intro is used
+    // as a link href on the client. Reject any non-http(s) value at write time
+    // so a "javascript:"/"data:" URL can never be stored (stored-XSS guard —
+    // the render path also filters, but never trust a single layer).
+    if (key !== "welcome.intro" && value !== "" && !/^https?:\/\//i.test(value)) {
+      return NextResponse.json(
+        { error: "Links must start with http:// or https://" },
+        { status: 400 }
+      );
     }
     await prisma.appSetting.upsert({
       where: { key },

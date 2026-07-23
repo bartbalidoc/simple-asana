@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { Markdown } from "@/components/ui/Markdown";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { PencilIcon } from "@/components/ui/icons";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+
+const INTRO_KEY = "welcome.intro";
+
+// Only ever treat http(s) values as clickable hrefs. A stored "javascript:" or
+// "data:" URL must never become an <a href> — it would run in every teammate's
+// browser (stored XSS). Anything else is treated as "not a link".
+const safeHref = (u: string | undefined): string =>
+  u && /^https?:\/\//i.test(u.trim()) ? u.trim() : "";
 
 // Welcome Hub (Sidney's onboarding request): a visual landing page for new
 // team members with cards linking to the training handbooks. Card links are
@@ -37,11 +50,18 @@ const CARDS = [
 
 export default function WelcomeHubPage() {
   const { data: session } = useSession();
+  const toast = useToast();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
   const firstName = session?.user?.name?.split(" ")[0] || "there";
 
   const [links, setLinks] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
+  // Rich intro block (Sidney's request): an admin-authored onboarding doc.
+  const [editingIntro, setEditingIntro] = useState(false);
+  const [introDraft, setIntroDraft] = useState("");
+  const [savingIntro, setSavingIntro] = useState(false);
+  const intro = links[INTRO_KEY] || "";
 
   useEffect(() => {
     fetch("/api/settings?prefix=welcome.")
@@ -51,16 +71,50 @@ export default function WelcomeHubPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const startEditIntro = () => {
+    setIntroDraft(intro);
+    setEditingIntro(true);
+  };
+
+  const saveIntro = async () => {
+    setSavingIntro(true);
+    // Mirror the server's cap so local state matches what's actually stored
+    // (no divergence-until-reload for very long notes).
+    const toStore = introDraft.slice(0, 20000);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: INTRO_KEY, value: toStore }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      setLinks((prev) => ({ ...prev, [INTRO_KEY]: toStore }));
+      setEditingIntro(false);
+      toast("Onboarding notes saved");
+    } catch {
+      // Keep the editor open so the draft isn't lost, and say so.
+      toast("Couldn't save the notes — please try again.", "error");
+    } finally {
+      setSavingIntro(false);
+    }
+  };
+
   const editLink = async (key: string, title: string) => {
     const current = links[key] || "";
-    const url = window.prompt(`Link for “${title}” (Google Doc, Drive, PDF…):`, current);
-    if (url === null) return;
+    const raw = window.prompt(`Link for “${title}” (must start with https://):`, current);
+    if (raw === null) return;
+    const url = raw.trim();
+    // Reject anything that isn't a real web link (blocks javascript:/data: etc).
+    if (url !== "" && !/^https?:\/\//i.test(url)) {
+      toast("Please use a link that starts with https://", "error");
+      return;
+    }
     await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value: url.trim() }),
+      body: JSON.stringify({ key, value: url }),
     }).catch(() => {});
-    setLinks((prev) => ({ ...prev, [key]: url.trim() }));
+    setLinks((prev) => ({ ...prev, [key]: url }));
   };
 
   return (
@@ -79,10 +133,59 @@ export default function WelcomeHubPage() {
         </p>
       </div>
 
+      {/* Rich intro block — admin-authored onboarding notes (Sidney's request).
+          Everyone sees the formatted text; admins get an editor. */}
+      {editingIntro ? (
+        <div className="mb-6">
+          <RichTextEditor
+            id="welcome-intro-editor"
+            ariaLabel="Onboarding notes for the team"
+            value={introDraft}
+            onChange={setIntroDraft}
+            disabled={savingIntro}
+            minHeight={220}
+            placeholder="Write onboarding notes for the team… Use the toolbar for headings, bold, lists and links."
+          />
+          <div className="flex gap-2 mt-2">
+            <Button onClick={saveIntro} variant="primary" size="sm" disabled={savingIntro}>
+              {savingIntro ? "Saving…" : "Save notes"}
+            </Button>
+            <Button
+              onClick={() => setEditingIntro(false)}
+              variant="subtle"
+              size="sm"
+              disabled={savingIntro}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : intro.trim() ? (
+        <div className="relative group mb-6 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <Markdown text={intro} className="text-sm text-gray-700 leading-relaxed space-y-1" />
+          {isAdmin && (
+            <button
+              onClick={startEditIntro}
+              className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600 bg-white/90 rounded-md px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              title="Edit these notes (admin)"
+            >
+              <PencilIcon size={13} /> Edit
+            </button>
+          )}
+        </div>
+      ) : isAdmin && !loading ? (
+        <button
+          onClick={startEditIntro}
+          className="w-full mb-6 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-red-600 bg-white rounded-2xl border border-dashed border-gray-300 hover:border-red-300 p-5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+        >
+          <PencilIcon size={15} /> Add onboarding notes for the team
+        </button>
+      ) : null}
+
       {/* Module cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {CARDS.map((card) => {
-          const url = links[card.key];
+          const url = safeHref(links[card.key]);
           const inner = (
             <>
               <div className="text-3xl mb-3">{card.icon}</div>
@@ -92,7 +195,7 @@ export default function WelcomeHubPage() {
                 {url ? (
                   <span className="text-red-600 group-hover:underline">Open module →</span>
                 ) : (
-                  <span className="text-gray-300">
+                  <span className="text-gray-500">
                     {loading ? "…" : "Link not set up yet"}
                   </span>
                 )}
@@ -118,10 +221,10 @@ export default function WelcomeHubPage() {
               {isAdmin && (
                 <button
                   onClick={() => editLink(card.key, card.title)}
-                  className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-600 bg-white/80 rounded px-1.5 py-0.5 transition"
+                  className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs text-gray-300 hover:text-red-600 bg-white/80 rounded-md px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                   title="Set the link for this module (admin)"
                 >
-                  ✏️ edit
+                  <PencilIcon size={12} /> Link
                 </button>
               )}
             </div>
