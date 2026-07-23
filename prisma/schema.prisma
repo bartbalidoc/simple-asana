@@ -176,6 +176,17 @@ model Task {
   archivedAt     DateTime?
   archiveUrl     String?   // webViewLink of the summary Google Doc
 
+  // Recurring tasks (Meilinda, v2.2). A task carries its own repeat rule; when
+  // the next copy spawns, the rule HANDS OFF to the new copy, so exactly one
+  // task in a series is ever "live" (repeatEvery != NONE). Bali time (WITA,
+  // UTC+8). repeatOnDay: MONTHLY = day-of-month 1-31, or 0 = last day of month;
+  // WEEKLY = day-of-week 0(Sun)-6(Sat). nextRunAt (UTC) is when the next copy
+  // is due; a task with nextRunAt <= now is spawned by the recurrence engine.
+  repeatEvery    RepeatEvery @default(NONE)
+  repeatOnDay    Int?
+  nextRunAt      DateTime?
+  seriesId       String?     // groups every copy of one recurring series (the original task id)
+
   // Asana import + staging-distribution bookkeeping.
   asanaId          String?   @unique   // source Asana task GID (idempotent import); copies have null
   distributedAt    DateTime?           // set on a staged task once copied into a real project (drives the color change)
@@ -197,6 +208,9 @@ model Task {
   comments       Comment[]
   attachments    Attachment[]
   guests         TaskGuest[]
+
+  // The recurrence engine scans for live rules whose next copy is due.
+  @@index([repeatEvery, nextRunAt])
 }
 
 enum TaskStatus {
@@ -211,6 +225,12 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum RepeatEvery {
+  NONE
+  WEEKLY
+  MONTHLY
 }
 
 model Comment {

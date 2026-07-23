@@ -20,6 +20,7 @@ import {
   MessageIcon,
   PaperclipIcon,
   PlusIcon,
+  RefreshIcon,
   SparklesIcon,
   TrashIcon,
   ZapIcon,
@@ -403,6 +404,33 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       onTaskUpdated?.(); // refresh board so the card badge updates immediately
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update priority");
+    }
+  };
+
+  // Recurring tasks (v2.2) — its own endpoint (computes the next-copy date).
+  const [savingRepeat, setSavingRepeat] = useState(false);
+  const saveRecurrence = async (repeatEvery: string, repeatOnDay: number | null) => {
+    setSavingRepeat(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/recurrence`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repeatEvery, repeatOnDay }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't update repeat.");
+      setTask((prev: any) => ({
+        ...prev,
+        repeatEvery: data.repeatEvery,
+        repeatOnDay: data.repeatOnDay ?? null,
+        nextRunAt: data.nextRunAt ?? null,
+      }));
+      onTaskUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't update repeat.");
+    } finally {
+      setSavingRepeat(false);
     }
   };
 
@@ -937,6 +965,87 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
             <p className="text-xs text-gray-500 mt-1">
               {moving ? "Moving…" : "Pick another board to move this task (and its subtasks) there."}
             </p>
+          </div>
+        )}
+
+        {/* Repeat (v2.2) — a task that comes back on a schedule. When the next
+            copy is due, a fresh copy (with its subtasks + their assignees) lands
+            in To Do and the repeat setting hands off to it. */}
+        {!isStaged && !task.parentTaskId && (
+          <div>
+            <label
+              htmlFor="task-repeat"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 mb-2"
+            >
+              <RefreshIcon size={14} className="text-gray-400" /> Repeat
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                id="task-repeat"
+                value={task.repeatEvery || "NONE"}
+                disabled={savingRepeat}
+                containerClassName="relative inline-block min-w-[150px]"
+                onChange={(e) => {
+                  const every = e.target.value;
+                  if (every === "NONE") saveRecurrence("NONE", null);
+                  else if (every === "MONTHLY")
+                    // Default to today's day-of-month for a sensible first pick.
+                    saveRecurrence("MONTHLY", task.repeatOnDay ?? new Date().getDate());
+                  else saveRecurrence("WEEKLY", task.repeatOnDay ?? new Date().getDay());
+                }}
+              >
+                <option value="NONE">Doesn&apos;t repeat</option>
+                <option value="WEEKLY">Every week</option>
+                <option value="MONTHLY">Every month</option>
+              </Select>
+
+              {task.repeatEvery === "MONTHLY" && (
+                <Select
+                  aria-label="Day of month"
+                  value={String(task.repeatOnDay ?? 1)}
+                  disabled={savingRepeat}
+                  containerClassName="relative inline-block min-w-[140px]"
+                  onChange={(e) => saveRecurrence("MONTHLY", Number(e.target.value))}
+                >
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>
+                      On day {d}
+                    </option>
+                  ))}
+                  <option value={0}>On the last day</option>
+                </Select>
+              )}
+
+              {task.repeatEvery === "WEEKLY" && (
+                <Select
+                  aria-label="Day of week"
+                  value={String(task.repeatOnDay ?? 1)}
+                  disabled={savingRepeat}
+                  containerClassName="relative inline-block min-w-[140px]"
+                  onChange={(e) => saveRecurrence("WEEKLY", Number(e.target.value))}
+                >
+                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(
+                    (name, i) => (
+                      <option key={i} value={i}>
+                        On {name}
+                      </option>
+                    )
+                  )}
+                </Select>
+              )}
+            </div>
+            {task.repeatEvery && task.repeatEvery !== "NONE" && task.nextRunAt && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                {savingRepeat
+                  ? "Saving…"
+                  : `Next copy appears ${new Date(task.nextRunAt).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      timeZone: "Asia/Makassar",
+                    })}. A fresh copy — with these subtasks and their assignees — lands in To Do.`}
+              </p>
+            )}
           </div>
         )}
 

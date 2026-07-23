@@ -7,7 +7,7 @@ import {
   Draggable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { CheckIcon, PlusIcon } from "@/components/ui/icons";
+import { CheckIcon, PlusIcon, RefreshIcon } from "@/components/ui/icons";
 
 interface Column {
   id: string;
@@ -27,6 +27,7 @@ interface Task {
   dueDate?: string | null;
   order: number;
   subtasks?: { id: string; status: string }[];
+  repeatEvery?: string;
 }
 
 interface KanbanBoardProps {
@@ -218,6 +219,12 @@ export function KanbanBoard({
                                 >
                                   {task.title || "Untitled Task"}
                                 </p>
+                                {task.repeatEvery && task.repeatEvery !== "NONE" && (
+                                  <RefreshIcon
+                                    size={13}
+                                    className="mt-0.5 flex-shrink-0 text-gray-400"
+                                  />
+                                )}
                               </div>
 
                               {/* Medium is the default — only High/Low earn a chip,

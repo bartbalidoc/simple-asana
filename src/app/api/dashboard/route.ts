@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
+import { runDueRecurrences } from "@/lib/recurrence";
 import { NextRequest, NextResponse } from "next/server";
 
 // Returns the signed-in user's dashboard: their assigned tasks (across all
@@ -15,6 +16,11 @@ export async function GET(req: NextRequest) {
     }
 
     const isAdmin = session.user.role === "ADMIN";
+
+    // Lazy recurrence spawn: whenever someone opens the app, materialize any due
+    // recurring copies. Cheap (one indexed query when nothing's due), best-effort
+    // (never blocks the dashboard), and race-safe with the hourly cron backstop.
+    runDueRecurrences().catch((e) => console.error("recurrence (dashboard):", e));
 
     const [projects, tasks, guestRows, mySubtasks] = await Promise.all([
       prisma.project.findMany({
