@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.7",
+    date: "2026-07-24",
+    title: "Number your subtasks too",
+    items: [
+      {
+        type: "improved",
+        title: "Set a focus number on subtasks in one click",
+        detail:
+          "Subtasks now have the same little focus-number badge as tasks — click it in the task's subtask list and type a number (1 = do first). No need to open the subtask. It saves right away and shows on your dashboard.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.6",
     date: "2026-07-24",
     title: "Manage & prioritise straight from the project board",

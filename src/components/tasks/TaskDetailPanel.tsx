@@ -648,6 +648,35 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
     }
   };
 
+  // Inline focus-number editing on a subtask row (v2.7) — mirrors the task and
+  // board editors. Empty clears it; clamps 1..99. Optimistic.
+  const [editingSubFocus, setEditingSubFocus] = useState<string | null>(null);
+  const handleSubtaskFocus = async (subtaskId: string, raw: string) => {
+    setEditingSubFocus(null);
+    const n = Number(raw);
+    const value =
+      raw.trim() === "" || !Number.isFinite(n) ? null : Math.min(99, Math.max(1, Math.round(n)));
+    const current =
+      task.subtasks.find((s: Subtask) => s.id === subtaskId)?.priorityNumber ?? null;
+    if (value === current) return;
+    setTask({
+      ...task,
+      subtasks: task.subtasks.map((s: Subtask) =>
+        s.id === subtaskId ? { ...s, priorityNumber: value } : s
+      ),
+    });
+    try {
+      const response = await fetch(`/api/tasks/${subtaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priorityNumber: value }),
+      });
+      if (!response.ok) throw new Error("Failed to set focus number");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set focus number");
+    }
+  };
+
   // Esc closes the panel — feels like a proper drawer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1575,6 +1604,38 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                                 }
                                 className="mt-0.5 w-4 h-4 rounded border-gray-300 cursor-pointer accent-red-600"
                               />
+                              {/* Focus # — click to edit (1 = do first). A sibling
+                                  of the title, so editing doesn't open the subtask. */}
+                              {editingSubFocus === subtask.id ? (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={99}
+                                  autoFocus
+                                  aria-label="Focus number"
+                                  defaultValue={subtask.priorityNumber ?? ""}
+                                  onBlur={(e) => handleSubtaskFocus(subtask.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") e.currentTarget.blur();
+                                    if (e.key === "Escape") setEditingSubFocus(null);
+                                  }}
+                                  className="mt-0.5 w-[34px] h-[18px] flex-shrink-0 text-center text-[11px] leading-none border border-gray-300 rounded-md px-1 bg-white focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 tabular-nums"
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSubFocus(subtask.id)}
+                                  title="Set focus number (1 = do first)"
+                                  aria-label="Set focus number"
+                                  className={`mt-0.5 flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md text-[11px] font-bold tabular-nums transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+                                    subtask.priorityNumber != null
+                                      ? "bg-gray-900 text-white hover:bg-gray-700"
+                                      : "border border-dashed border-gray-400 text-gray-400 hover:text-gray-600 hover:border-gray-500"
+                                  }`}
+                                >
+                                  {subtask.priorityNumber ?? "#"}
+                                </button>
+                              )}
                               <div className="flex-1 min-w-0">
                                 {/* Click the title to open the subtask (drill-down). */}
                                 <button
@@ -1582,14 +1643,6 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                                   title="Open subtask"
                                   className="flex w-full items-baseline gap-2 text-left text-sm group/sub"
                                 >
-                                  {subtask.priorityNumber != null && (
-                                    <span
-                                      title={`Focus #${subtask.priorityNumber}`}
-                                      className="self-center flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[10px] font-bold tabular-nums"
-                                    >
-                                      {subtask.priorityNumber}
-                                    </span>
-                                  )}
                                   <span
                                     className={`min-w-0 break-words group-hover/sub:text-red-600 ${
                                       subtask.status === "DONE"

@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.7 — 2026-07-24 · Number your subtasks too
+
+- **[Improved] Set a focus number on subtasks in one click** _(requested by Bart)_
+  Subtasks now have the same little focus-number badge as tasks — click it in the task's subtask list and type a number (1 = do first). No need to open the subtask. It saves right away and shows on your dashboard.
+
 ## v2.6 — 2026-07-24 · Manage & prioritise straight from the project board
 
 - **[New] Select multiple cards on the board and park them** _(requested by Bart)_
