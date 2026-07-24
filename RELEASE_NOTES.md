@@ -7,6 +7,13 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.5 — 2026-07-24 · Manage your dashboard: park in bulk + set focus numbers inline
+
+- **[New] Select many tasks and park them from the dashboard** _(requested by Bart)_
+  Admins get a “Manage” button on the dashboard. Turn it on, tick the tasks you want to shelve, and hit “Park (hide)” to take them all off the board at once. Parked tasks don't disappear from your dashboard — they grey out with a “Parked” tag so you can still see and un-park them, and a “Show/Hide parked” button collapses them when you want a clean view.
+- **[New] Set a task's focus number right on the dashboard** _(requested by Bart)_
+  Every task row now has a little focus-number badge — click it and type a number (1 = do first) without opening the task. It saves instantly and shows everywhere the task appears.
+
 ## v2.4 — 2026-07-24 · A calmer board + a focus number for your tasks
 
 - **[New] “Park” tasks to keep the board calm** _(requested by Bart)_

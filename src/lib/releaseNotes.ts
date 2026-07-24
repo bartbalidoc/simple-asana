@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.5",
+    date: "2026-07-24",
+    title: "Manage your dashboard: park in bulk + set focus numbers inline",
+    items: [
+      {
+        type: "new",
+        title: "Select many tasks and park them from the dashboard",
+        detail:
+          "Admins get a “Manage” button on the dashboard. Turn it on, tick the tasks you want to shelve, and hit “Park (hide)” to take them all off the board at once. Parked tasks don't disappear from your dashboard — they grey out with a “Parked” tag so you can still see and un-park them, and a “Show/Hide parked” button collapses them when you want a clean view.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "new",
+        title: "Set a task's focus number right on the dashboard",
+        detail:
+          "Every task row now has a little focus-number badge — click it and type a number (1 = do first) without opening the task. It saves instantly and shows everywhere the task appears.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.4",
     date: "2026-07-24",
     title: "A calmer board + a focus number for your tasks",

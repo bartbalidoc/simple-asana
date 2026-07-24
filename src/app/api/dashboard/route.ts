@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
           assigneeId: session.user.id,
           parentTaskId: null,
           project: { isStaging: false },
-          parkedAt: null, // parked tasks (v2.4) drop off the dashboard too
+          // Members never see parked (v2.4). Admins DO — greyed on the
+          // dashboard so they can manage/unpark them (v2.5).
+          ...(isAdmin ? {} : { parkedAt: null }),
         },
         include: {
           project: { select: { id: true, name: true } },
@@ -55,7 +57,7 @@ export async function GET(req: NextRequest) {
       prisma.taskGuest.findMany({
         where: {
           userId: session.user.id,
-          task: { project: { isStaging: false }, parkedAt: null },
+          task: { project: { isStaging: false }, ...(isAdmin ? {} : { parkedAt: null }) },
         },
         include: {
           task: {
@@ -75,12 +77,12 @@ export async function GET(req: NextRequest) {
           assigneeId: session.user.id,
           parentTaskId: { not: null },
           project: { isStaging: false },
-          parkedAt: null,
-          parentTask: { parkedAt: null },
+          // Members never see parked (subtask or its parent); admins do.
+          ...(isAdmin ? {} : { parkedAt: null, parentTask: { parkedAt: null } }),
         },
         include: {
           project: { select: { id: true, name: true } },
-          parentTask: { select: { titleEnc: true } },
+          parentTask: { select: { titleEnc: true, parkedAt: true } },
         },
         orderBy: { dueDate: "asc" },
       }),
@@ -103,6 +105,7 @@ export async function GET(req: NextRequest) {
       status: t.status,
       priority: t.priority,
       priorityNumber: t.priorityNumber, // focus rank (v2.4)
+      parked: !!t.parkedAt, // greyed + manageable on admin dashboard (v2.5)
       dueDate: t.dueDate,
       projectId: t.project?.id,
       projectName: t.project?.name,
@@ -123,6 +126,9 @@ export async function GET(req: NextRequest) {
         status: st.status,
         priority: st.priority,
         priorityNumber: st.priorityNumber, // focus rank (v2.4)
+        // A subtask counts as parked if it OR its parent is parked — so
+        // parent-parked subtasks grey out and drop from stats like the parent.
+        parked: !!st.parkedAt || !!st.parentTask?.parkedAt,
         dueDate: st.dueDate,
         projectId: st.project?.id,
         projectName: st.project?.name,
