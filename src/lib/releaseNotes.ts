@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.6",
+    date: "2026-07-24",
+    title: "Manage & prioritise straight from the project board",
+    items: [
+      {
+        type: "new",
+        title: "Select multiple cards on the board and park them",
+        detail:
+          "Admins now get a “Select” button on each project board. Turn it on, click the cards you want to shelve (they get a red outline), and use the bar at the bottom to Park them all — off the board in one go. Click “Done” to leave select mode. It's the same bulk-park you have on the dashboard, now right on the board where the clutter is.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "new",
+        title: "Set a card's focus number without opening it",
+        detail:
+          "Every board card now has a small focus-number badge — click it and type a number (1 = do first). No need to open the task. It saves right away and shows on the card and your dashboard.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.5",
     date: "2026-07-24",
     title: "Manage your dashboard: park in bulk + set focus numbers inline",

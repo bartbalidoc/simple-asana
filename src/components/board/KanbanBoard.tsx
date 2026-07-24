@@ -39,6 +39,13 @@ interface KanbanBoardProps {
   onTaskUpdate?: (taskId: string, updates: any) => Promise<void>;
   onTaskClick?: (taskId: string) => void;
   onCreateTask?: (columnId: string, title: string) => Promise<void> | void;
+  // Multi-select park mode (admin, v2.5): clicking a card selects it instead of
+  // opening it, and drag is disabled. Selection + bulk actions live in the page.
+  selectMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (taskId: string) => void;
+  // Inline focus-number editing on a card (any editor).
+  onSetFocus?: (taskId: string, value: number | null) => void;
 }
 
 const accent = (name: string) => {
@@ -92,10 +99,24 @@ export function KanbanBoard({
   onTaskUpdate,
   onTaskClick,
   onCreateTask,
+  selectMode = false,
+  selectedIds,
+  onToggleSelect,
+  onSetFocus,
 }: KanbanBoardProps) {
   // Local copy so drag reorders feel instant; re-sync when the server data changes.
   const [items, setItems] = useState<Task[]>(tasks);
   useEffect(() => setItems(tasks), [tasks]);
+
+  // Which card's focus number is being edited inline (click the badge).
+  const [editingFocus, setEditingFocus] = useState<string | null>(null);
+
+  const commitFocus = (taskId: string, raw: string) => {
+    setEditingFocus(null);
+    const n = Number(raw);
+    const value = raw.trim() === "" || !Number.isFinite(n) ? null : Math.min(99, Math.max(1, Math.round(n)));
+    onSetFocus?.(taskId, value);
+  };
 
   // In-column quick-add
   const [addCol, setAddCol] = useState<string | null>(null);
@@ -194,19 +215,44 @@ export function KanbanBoard({
                         new Date(task.dueDate) < new Date() &&
                         task.status !== "DONE";
                       return (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(dp, snap) => (
+                        <Draggable
+                          key={task.id}
+                          draggableId={task.id}
+                          index={index}
+                          isDragDisabled={selectMode}
+                        >
+                          {(dp, snap) => {
+                            const isSelected = !!selectedIds?.has(task.id);
+                            return (
                             <div
                               ref={dp.innerRef}
                               {...dp.draggableProps}
                               {...dp.dragHandleProps}
-                              onClick={() => onTaskClick?.(task.id)}
+                              onClick={() =>
+                                selectMode ? onToggleSelect?.(task.id) : onTaskClick?.(task.id)
+                              }
+                              // Drag-disabled cards lose the handle's tabIndex, so
+                              // in select mode make the card keyboard-selectable.
+                              {...(selectMode
+                                ? {
+                                    tabIndex: 0,
+                                    onKeyDown: (e: React.KeyboardEvent) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        onToggleSelect?.(task.id);
+                                      }
+                                    },
+                                  }
+                                : {})}
                               role="button"
                               aria-label={task.title}
-                              className={`group bg-white rounded-xl p-3.5 border transition cursor-pointer ${
+                              aria-pressed={selectMode ? isSelected : undefined}
+                              className={`group bg-white rounded-xl p-3.5 border transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 ${
                                 task.parkedAt ? "opacity-60" : ""
                               } ${
-                                snap.isDragging
+                                isSelected
+                                  ? "border-red-400 ring-2 ring-red-400"
+                                  : snap.isDragging
                                   ? "border-red-300 shadow-lg rotate-[0.5deg]"
                                   : "border-gray-200 shadow-sm hover:shadow-md hover:border-red-200"
                               }`}
@@ -214,15 +260,62 @@ export function KanbanBoard({
                               {/* Done: calm fade + green check, no strikethrough
                                   (struck-through titles read as errors at a glance). */}
                               <div className="flex items-start gap-1.5 mb-2.5">
-                                {/* Focus rank (v2.4): 1 = do first. Reads as a
-                                    quiet ordinal, not an alert. */}
-                                {task.priorityNumber != null && (
-                                  <span
-                                    title={`Focus #${task.priorityNumber}`}
-                                    className="mt-0.5 flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[11px] font-bold tabular-nums"
+                                {/* Select-mode checkbox (visual; the card click
+                                    toggles selection). */}
+                                {selectMode && (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    readOnly
+                                    tabIndex={-1}
+                                    aria-hidden
+                                    className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-red-600 pointer-events-none"
+                                  />
+                                )}
+                                {/* Focus # — click to edit (1 = do first), normal
+                                    mode only. In select mode it's a plain badge so
+                                    the whole card selects uniformly (no dead zone). */}
+                                {editingFocus === task.id && !selectMode ? (
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={99}
+                                    autoFocus
+                                    aria-label="Focus number"
+                                    defaultValue={task.priorityNumber ?? ""}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onBlur={(e) => commitFocus(task.id, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") e.currentTarget.blur();
+                                      if (e.key === "Escape") setEditingFocus(null);
+                                    }}
+                                    className="mt-0.5 w-[34px] h-[18px] flex-shrink-0 text-center text-[11px] leading-none border border-gray-300 rounded-md px-1 bg-white focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 tabular-nums"
+                                  />
+                                ) : selectMode ? (
+                                  task.priorityNumber != null && (
+                                    <span className="mt-0.5 flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[11px] font-bold tabular-nums">
+                                      {task.priorityNumber}
+                                    </span>
+                                  )
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingFocus(task.id);
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    title="Set focus number (1 = do first)"
+                                    aria-label="Set focus number"
+                                    className={`mt-0.5 flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md text-[11px] font-bold tabular-nums transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+                                      task.priorityNumber != null
+                                        ? "bg-gray-900 text-white hover:bg-gray-700"
+                                        : "border border-dashed border-gray-400 text-gray-400 hover:text-gray-600 hover:border-gray-500"
+                                    }`}
                                   >
-                                    {task.priorityNumber}
-                                  </span>
+                                    {task.priorityNumber ?? "#"}
+                                  </button>
                                 )}
                                 {task.status === "DONE" && (
                                   <CheckIcon
@@ -300,7 +393,8 @@ export function KanbanBoard({
                                 </div>
                               )}
                             </div>
-                          )}
+                            );
+                          }}
                         </Draggable>
                       );
                     })}

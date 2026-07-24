@@ -7,6 +7,13 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.6 — 2026-07-24 · Manage & prioritise straight from the project board
+
+- **[New] Select multiple cards on the board and park them** _(requested by Bart)_
+  Admins now get a “Select” button on each project board. Turn it on, click the cards you want to shelve (they get a red outline), and use the bar at the bottom to Park them all — off the board in one go. Click “Done” to leave select mode. It's the same bulk-park you have on the dashboard, now right on the board where the clutter is.
+- **[New] Set a card's focus number without opening it** _(requested by Bart)_
+  Every board card now has a small focus-number badge — click it and type a number (1 = do first). No need to open the task. It saves right away and shows on the card and your dashboard.
+
 ## v2.5 — 2026-07-24 · Manage your dashboard: park in bulk + set focus numbers inline
 
 - **[New] Select many tasks and park them from the dashboard** _(requested by Bart)_

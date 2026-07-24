@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
@@ -33,6 +33,34 @@ export default function ProjectPage() {
   // Admins can reveal parked tasks (hidden by default). Non-admins never
   // receive parked tasks from the API, so this stays off/irrelevant for them.
   const [showParked, setShowParked] = useState(false);
+
+  // Multi-select park mode on the board (admin, v2.5).
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Keep the selection to only cards still visible after a filter change, so
+  // bulk-park never acts on a hidden card (lesson from the dashboard review).
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(
+        ((project?.tasks as any[]) || [])
+          .filter((t) => {
+            if (t.parkedAt && !showParked) return false;
+            const s = !search || (t.title || "").toLowerCase().includes(search.toLowerCase());
+            const a =
+              !assigneeFilter ||
+              (assigneeFilter === "__unassigned__" ? !t.assigneeId : t.assigneeId === assigneeFilter);
+            return s && a;
+          })
+          .map((t) => t.id)
+      );
+      const next = [...prev].filter((id) => visible.has(id));
+      return next.length === prev.size ? prev : new Set(next);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, assigneeFilter, showParked, project]);
 
   // Open a specific task when linked from the dashboard (?task=<id>)
   useEffect(() => {
@@ -211,6 +239,71 @@ export default function ProjectPage() {
       setFormError(err instanceof Error ? err.message : "Failed to update task");
     }
   };
+
+  // Set a card's focus number inline (v2.5). Reuses the task PATCH.
+  const handleSetFocus = async (taskId: string, value: number | null) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priorityNumber: value }),
+      });
+      if (!res.ok) throw new Error("failed");
+      await fetchProject();
+    } catch {
+      toast("Couldn't save the focus number.", "error");
+    }
+  };
+
+  const toggleSelect = (taskId: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      return next;
+    });
+
+  // Bulk park / unpark the selected cards (admin). Reuses the reviewed endpoint.
+  const bulkPark = async (parked: boolean) => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/tasks/bulk-park", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskIds: ids, parked }),
+      });
+      if (!res.ok) throw new Error("bulk park failed");
+      await fetchProject();
+      setSelected(new Set());
+      toast(
+        parked
+          ? `Parked ${ids.length} task${ids.length > 1 ? "s" : ""} — hidden from the board`
+          : `${ids.length} task${ids.length > 1 ? "s" : ""} back on the board`
+      );
+    } catch {
+      toast("Couldn't update those tasks. Please try again.", "error");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  // Stable reference for the board's visible tasks — recomputed only when the
+  // data or a filter changes, so KanbanBoard's resync effect doesn't fire on
+  // every render (which could revert an in-flight drag).
+  const boardTasks = useMemo(
+    () =>
+      ((project?.tasks as any[]) || []).filter((t) => {
+        if (t.parkedAt && !showParked) return false;
+        const matchesSearch =
+          !search || (t.title || "").toLowerCase().includes(search.toLowerCase());
+        const matchesAssignee =
+          !assigneeFilter ||
+          (assigneeFilter === "__unassigned__" ? !t.assigneeId : t.assigneeId === assigneeFilter);
+        return matchesSearch && matchesAssignee;
+      }),
+    [project, search, assigneeFilter, showParked]
+  );
 
   if (loading) {
     return (
@@ -485,50 +578,73 @@ export default function ProjectPage() {
             Clear
           </button>
         )}
-        {/* Admins can reveal parked tasks. Only shown when this board actually
-            has parked tasks (they only reach the payload for admins). */}
-        {isAdmin && (project.tasks || []).some((t: any) => t.parkedAt) && (
-          <button
-            onClick={() => setShowParked((v) => !v)}
-            aria-pressed={showParked}
-            className={`ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
-              showParked
-                ? "bg-gray-100 text-gray-800 border-gray-300"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            {showParked ? "Hide parked" : "Show parked"}
-            <span className="tabular-nums text-gray-400">
-              {(project.tasks || []).filter((t: any) => t.parkedAt).length}
-            </span>
-          </button>
+        {/* Admin board tools: multi-select park + reveal parked. */}
+        {isAdmin && (
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant={selectMode ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => {
+                setSelectMode((v) => !v);
+                setSelected(new Set());
+              }}
+              aria-pressed={selectMode}
+            >
+              {selectMode ? "Done" : "Select"}
+            </Button>
+            {(project.tasks || []).some((t: any) => t.parkedAt) && (
+              <Button
+                variant={showParked ? "subtle" : "secondary"}
+                size="sm"
+                onClick={() => setShowParked((v) => !v)}
+                aria-pressed={showParked}
+              >
+                {showParked ? "Hide parked" : "Show parked"}
+                <span className="tabular-nums text-gray-400 ml-1">
+                  {(project.tasks || []).filter((t: any) => t.parkedAt).length}
+                </span>
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
       {project.columns.length > 0 ? (
         <KanbanBoard
           columns={project.columns}
-          tasks={(project.tasks || []).filter((t: any) => {
-            // Parked tasks are hidden unless an admin flips "Show parked".
-            if (t.parkedAt && !showParked) return false;
-            const matchesSearch =
-              !search ||
-              (t.title || "").toLowerCase().includes(search.toLowerCase());
-            const matchesAssignee =
-              !assigneeFilter ||
-              (assigneeFilter === "__unassigned__"
-                ? !t.assigneeId
-                : t.assigneeId === assigneeFilter);
-            return matchesSearch && matchesAssignee;
-          })}
+          tasks={boardTasks}
           projectId={projectId}
           onTaskUpdate={handleTaskUpdate}
           onTaskClick={setSelectedTaskId}
           onCreateTask={handleCreateTaskInColumn}
+          selectMode={selectMode}
+          selectedIds={selected}
+          onToggleSelect={toggleSelect}
+          onSetFocus={handleSetFocus}
         />
       ) : (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <p className="text-gray-600">No columns configured for this project.</p>
+        </div>
+      )}
+
+      {/* Sticky bulk bar — appears when cards are selected in Select mode. */}
+      {selectMode && selected.size > 0 && (
+        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white shadow-lg px-4 py-2.5">
+          <span className="text-sm text-gray-700">
+            <span className="font-semibold tabular-nums">{selected.size}</span> selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="primary" size="sm" onClick={() => bulkPark(true)} disabled={bulkBusy}>
+              {bulkBusy ? "Working…" : "Park (hide)"}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => bulkPark(false)} disabled={bulkBusy}>
+              Unpark
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={bulkBusy}>
+              Clear
+            </Button>
+          </div>
         </div>
       )}
 
