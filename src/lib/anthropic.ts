@@ -397,3 +397,259 @@ export async function summarizeTaskForArchive(taskDump: string): Promise<Archive
     keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.map(String) : [],
   };
 }
+
+// ---------------------------------------------------------------------------
+// SMART task breakdown (Phase 3, v2.9): turn a big or vague task into concrete,
+// doable daily steps so "My Day" fills with things people can actually start.
+//
+// Two Claude calls, deliberately decoupled:
+//   1. researchTaskForBreakdown — a web_search-enabled brainstorm + LIVE research
+//      pass that returns free-text findings plus the real source URLs it used.
+//   2. the structured pass below — turns the task + that briefing into SMART steps,
+//      tips & tricks, and an emailable plan-of-approach report (json_schema).
+// Keeping tools out of the structured call sidesteps the tool/structured-output
+// incompatibility and keeps each request simple. This is the app's FIRST use of a
+// server-side tool (web_search), so the research pass carries a small pause_turn
+// resume loop, and web search is best-effort — if it's unavailable the breakdown
+// still works from Claude's own knowledge.
+
+export interface SmartStep {
+  title: string; // the concrete action, a short imperative
+  how: string; // plainly, how to do it
+  where: string; // the tool, place, person, or resource to use
+  doneWhen: string; // the measurable "done" condition
+}
+export interface ResearchFinding {
+  title: string;
+  detail: string;
+  url: string; // "" when it came from general knowledge, not a web source
+}
+export interface SmartBreakdown {
+  steps: SmartStep[];
+  research: ResearchFinding[];
+  tips: string[];
+  report: string; // markdown plan-of-approach, emailable
+}
+
+const RESEARCH_SYSTEM = `You are a resourceful assistant helping a clinic team member actually DO a work task.
+- Brainstorm the best real-world way to accomplish it from your own knowledge.
+- Use the web_search tool to find current, concrete, practical information for THIS specific task: how-to guides, suppliers, tools, materials, real prices, examples, best practices. Prefer specific, actionable facts and real links over generic advice.
+Then write a short, plain-English briefing a non-native English speaker can follow: the recommended approach, the key facts you found, and anything that would help someone start today. End with a "Sources:" list of the URLs you actually relied on. Stay focused on this one task.`;
+
+// Run the research/brainstorm pass. `useWebSearch=false` is the fallback path when
+// the web_search tool is unavailable (returns a pure brainstorm). Returns the
+// briefing text and the deduped list of real sources the model searched.
+async function researchTaskForBreakdown(
+  taskDump: string,
+  useWebSearch: boolean
+): Promise<{ text: string; sources: { title: string; url: string }[] }> {
+  const messages: any[] = [
+    {
+      role: "user",
+      content: `Help me figure out how to do this task. Research it, then brief me:\n\n${taskDump.slice(0, 20000)}`,
+    },
+  ];
+  const textParts: string[] = [];
+  const seenUrls = new Set<string>();
+  const sources: { title: string; url: string }[] = [];
+
+  // web_search runs a server-side loop and can stop with pause_turn if it hits
+  // its iteration cap — re-send to resume. Bound the loop so it always ends.
+  let guard = 0;
+  while (guard++ < 6) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY as string,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: 4096,
+        system: RESEARCH_SYSTEM,
+        messages,
+        // web_search_20260209 needs Opus 4.8 (our default); no beta header, and
+        // dynamic filtering is built in (do NOT also declare code_execution).
+        ...(useWebSearch
+          ? { tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }] }
+          : {}),
+        output_config: { effort: "medium" },
+      }),
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`Anthropic API ${res.status}: ${t.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+    if (data.stop_reason === "refusal") {
+      throw new Error("The model declined to research this task.");
+    }
+
+    for (const b of data.content || []) {
+      if (b?.type === "text" && b.text) textParts.push(b.text);
+      // Collect the real URLs the search returned. On success `content` is a
+      // list of web_search_result; on error it's a single error object — guard.
+      if (b?.type === "web_search_tool_result" && Array.isArray(b.content)) {
+        for (const r of b.content) {
+          if (r?.type === "web_search_result" && r.url && !seenUrls.has(r.url)) {
+            seenUrls.add(r.url);
+            sources.push({ title: String(r.title || r.url), url: String(r.url) });
+          }
+        }
+      }
+    }
+
+    if (data.stop_reason === "pause_turn") {
+      messages.push({ role: "assistant", content: data.content });
+      continue;
+    }
+    break; // end_turn (or any terminal reason) — done researching
+  }
+
+  return { text: textParts.join("\n\n").trim(), sources: sources.slice(0, 12) };
+}
+
+const SMART_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          how: { type: "string" },
+          where: { type: "string" },
+          doneWhen: { type: "string" },
+        },
+        required: ["title", "how", "where", "doneWhen"],
+      },
+    },
+    research: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          detail: { type: "string" },
+          url: { type: "string" },
+        },
+        required: ["title", "detail", "url"],
+      },
+    },
+    tips: { type: "array", items: { type: "string" } },
+    report: { type: "string" },
+  },
+  required: ["steps", "research", "tips", "report"],
+} as const;
+
+const SMART_SYSTEM = `You are a project coach turning a work task into a concrete, doable daily plan for a clinic team member (often a non-native English speaker). Use ONLY the task details and the research briefing provided. Return:
+- steps: 3-7 SMART steps to get this task done — Specific, Measurable, Achievable, Relevant, Time-bound. For each: title (a short imperative action), how (plainly how to do it), where (the tool, place, person, or resource to use), doneWhen (the concrete condition that means this step is finished). Order them so someone can start at step 1 today.
+- research: 0-8 concrete findings from the briefing worth keeping — each a title, a one-line detail, and a source url. Use a url ONLY if it appears in the briefing's Sources; otherwise use an empty string.
+- tips: 3-6 short, practical tips & tricks, including at least one on how AI can help with this task.
+- report: a short plan-of-approach in Markdown the person could read or receive by email — a couple of sentences of framing, then the steps as a checklist, then the tips. Simple, encouraging, practical English.
+Never invent facts, prices, names, or links that are not in the task or the briefing. Write in simple English readable by non-native speakers.`;
+
+/**
+ * Break a task into SMART, doable steps with live research, tips, and an emailable
+ * plan-of-approach report. Preview only — the caller decides what to persist. Never
+ * writes anything.
+ */
+export async function breakdownTaskToSmartSteps(taskDump: string): Promise<SmartBreakdown> {
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  // 1) Research + brainstorm. Web search is best-effort: if it's unavailable
+  //    (e.g. not enabled on the key), fall back to a brainstorm-only pass so the
+  //    feature still works; only give up on research if both attempts fail.
+  let research: { text: string; sources: { title: string; url: string }[] } = {
+    text: "",
+    sources: [],
+  };
+  try {
+    research = await researchTaskForBreakdown(taskDump, true);
+  } catch {
+    try {
+      research = await researchTaskForBreakdown(taskDump, false);
+    } catch {
+      research = { text: "", sources: [] };
+    }
+  }
+
+  const sourcesBlock = research.sources.length
+    ? `\n\nSources found (title — url):\n${research.sources.map((s) => `${s.title} — ${s.url}`).join("\n")}`
+    : "";
+  const briefing = research.text
+    ? `\n\nResearch briefing:\n${research.text.slice(0, 12000)}${sourcesBlock}`
+    : "\n\n(No external research was available — plan from general knowledge.)";
+
+  // 2) Structure into SMART steps + tips + emailable report.
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 3000,
+      system: SMART_SYSTEM,
+      messages: [
+        { role: "user", content: `Task to break down:\n\n${taskDump.slice(0, 20000)}${briefing}` },
+      ],
+      output_config: {
+        effort: "medium", // real reasoning for the plan, not the cheap extraction tier
+        format: { type: "json_schema", schema: SMART_SCHEMA },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Anthropic API ${res.status}: ${t.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  if (data.stop_reason === "refusal") {
+    throw new Error("The model declined to break down this task.");
+  }
+  const textBlock = (data.content || []).find((b: any) => b.type === "text");
+  if (!textBlock?.text) throw new Error("Claude returned no content.");
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(textBlock.text);
+  } catch {
+    throw new Error("Claude returned malformed JSON.");
+  }
+
+  const str = (v: any) => (typeof v === "string" ? v.trim() : "");
+  const steps: SmartStep[] = Array.isArray(parsed?.steps)
+    ? parsed.steps
+        .filter((s: any) => s && str(s.title))
+        .map((s: any) => ({
+          title: str(s.title),
+          how: str(s.how),
+          where: str(s.where),
+          doneWhen: str(s.doneWhen),
+        }))
+        .slice(0, 10)
+    : [];
+  const findings: ResearchFinding[] = Array.isArray(parsed?.research)
+    ? parsed.research
+        .filter((r: any) => r && str(r.title))
+        .map((r: any) => ({ title: str(r.title), detail: str(r.detail), url: str(r.url) }))
+        .slice(0, 8)
+    : [];
+  const tips: string[] = Array.isArray(parsed?.tips)
+    ? parsed.tips.filter((t: any) => typeof t === "string" && t.trim()).map((t: any) => t.trim()).slice(0, 8)
+    : [];
+
+  return { steps, research: findings, tips, report: str(parsed?.report) };
+}

@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.9",
+    date: "2026-07-25",
+    title: "Turn any task into today's doable steps — with AI",
+    items: [
+      {
+        type: "new",
+        title: "“Break a task into today's steps” on My Day",
+        detail:
+          "On My Day, pick one of your tasks (or a subtask) and let AI do the thinking for you: it researches the task live on the web, then proposes a short list of concrete, SMART steps — each with how to do it, where/what to use, and how you'll know it's done. Tick the steps you want and they drop straight into your To-Do, linked back to the task. You also get real source links, practical tips & tricks (including how AI can help), and a ready plan-of-approach you can copy or email. Nothing is saved until you add it. It's built to answer the hardest question — “how do I even start?” — so a big, vague task becomes a few things you can actually do today.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.8",
     date: "2026-07-24",
     title: "Manager cockpit — see what anyone's working on",

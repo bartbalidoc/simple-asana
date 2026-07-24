@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.9 — 2026-07-25 · Turn any task into today's doable steps — with AI
+
+- **[New] “Break a task into today's steps” on My Day** _(requested by Bart)_
+  On My Day, pick one of your tasks (or a subtask) and let AI do the thinking for you: it researches the task live on the web, then proposes a short list of concrete, SMART steps — each with how to do it, where/what to use, and how you'll know it's done. Tick the steps you want and they drop straight into your To-Do, linked back to the task. You also get real source links, practical tips & tricks (including how AI can help), and a ready plan-of-approach you can copy or email. Nothing is saved until you add it. It's built to answer the hardest question — “how do I even start?” — so a big, vague task becomes a few things you can actually do today.
+
 ## v2.8 — 2026-07-24 · Manager cockpit — see what anyone's working on
 
 - **[New] A per-person “Team” view for admins** _(requested by Bart)_
