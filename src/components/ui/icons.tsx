@@ -192,6 +192,17 @@ export const FolderIcon = ({ size = 16, className = "" }: IconProps) =>
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
   ));
 
+export const GaugeIcon = ({ size = 16, className = "" }: IconProps) =>
+  svg(size, className, (
+    <>
+      <path d="M12 21a9 9 0 1 0-9-9" />
+      <path d="M3 12h2" />
+      <path d="M12 3v2" />
+      <path d="M19 12h2" />
+      <path d="M12 12l4-2" />
+    </>
+  ));
+
 export const AlertTriangleIcon = ({ size = 16, className = "" }: IconProps) =>
   svg(size, className, (
     <>

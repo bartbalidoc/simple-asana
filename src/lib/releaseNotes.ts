@@ -20,6 +20,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.8",
+    date: "2026-07-24",
+    title: "Manager cockpit — see what anyone's working on",
+    items: [
+      {
+        type: "new",
+        title: "A per-person “Team” view for admins",
+        detail:
+          "Admins get a new “Team” page (in the sidebar): pick a person and instantly see their open tasks (with focus numbers, due dates and what's overdue), how they're tracking — open count, overdue, on-time % and tasks completed over the last 90 days — when they were last active, and their daily plan for today. It's the calm overview a project manager needs to run good check-in calls, all in one place.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.7",
     date: "2026-07-24",
     title: "Number your subtasks too",

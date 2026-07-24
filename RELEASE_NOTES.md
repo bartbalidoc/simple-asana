@@ -7,6 +7,11 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.8 — 2026-07-24 · Manager cockpit — see what anyone's working on
+
+- **[New] A per-person “Team” view for admins** _(requested by Bart)_
+  Admins get a new “Team” page (in the sidebar): pick a person and instantly see their open tasks (with focus numbers, due dates and what's overdue), how they're tracking — open count, overdue, on-time % and tasks completed over the last 90 days — when they were last active, and their daily plan for today. It's the calm overview a project manager needs to run good check-in calls, all in one place.
+
 ## v2.7 — 2026-07-24 · Number your subtasks too
 
 - **[Improved] Set a focus number on subtasks in one click** _(requested by Bart)_

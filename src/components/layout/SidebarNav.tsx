@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ProjectSidebarList } from "./ProjectSidebarList";
-import { PlusIcon, BoardIcon, UsersIcon, SparklesIcon, ArrowUpIcon } from "@/components/ui/icons";
+import { PlusIcon, BoardIcon, UsersIcon, SparklesIcon, ArrowUpIcon, GaugeIcon } from "@/components/ui/icons";
 
 function NavLink({
   href,
@@ -101,6 +101,7 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
           <div className="px-3 pt-4 pb-1 text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
             Admin
           </div>
+          <NavLink href="/admin/team" label="Team" icon={<GaugeIcon size={16} />} />
           <NavLink href="/admin/activity" label="Activity" icon={<ArrowUpIcon size={16} />} />
           <NavLink href="/admin/staging" label="Staging (Asana import)" icon={<BoardIcon size={16} />} />
           <NavLink href="/admin/users" label="Users" icon={<UsersIcon size={16} />} />

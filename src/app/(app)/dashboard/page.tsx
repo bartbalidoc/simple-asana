@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/Toast";
 import {
   AlertTriangleIcon,
@@ -591,32 +592,6 @@ export default function DashboardPage() {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accent,
-  icon,
-  tint,
-}: {
-  label: string;
-  value: number;
-  accent: string;
-  icon: React.ReactNode;
-  tint: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${tint}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className={`text-2xl font-bold leading-tight tabular-nums ${accent}`}>{value}</div>
-        <div className="text-xs text-gray-500 truncate">{label}</div>
-      </div>
     </div>
   );
 }
