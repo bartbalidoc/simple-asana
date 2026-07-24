@@ -7,6 +7,13 @@ User-facing changelog for the Project Hub — the same content the team sees in-
 > [`src/lib/releaseNotes.ts`](src/lib/releaseNotes.ts); regenerate this file with
 > `node scripts/release-notes-md.mjs`.
 
+## v2.4 — 2026-07-24 · A calmer board + a focus number for your tasks
+
+- **[New] “Park” tasks to keep the board calm** _(requested by Bart)_
+  Admins can now Park a task (open it → “Park (hide from board)” at the bottom). Parked tasks drop off everyone's board and dashboard, so the board only shows what's actually being worked on — no more scary wall of cards. Nothing is deleted: admins see a “Show parked” button on each board to bring them back anytime. Only admins can park or unpark.
+- **[New] Give a task or subtask a focus number** _(requested by Bart)_
+  Every task and subtask can get a Focus # (1 = do this first) in the task panel. The number shows as a small badge on board cards and on your dashboard, and pulls higher-focus cards to the top of their column — so it's obvious where to point your attention. It's optional; leave it blank and nothing changes.
+
 ## v2.3 — 2026-07-23 · Write proper onboarding notes on the Welcome Hub
 
 - **[New] A rich text editor for the Welcome Hub** _(requested by Sidney)_

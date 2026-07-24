@@ -48,6 +48,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         attachments: true,
         subtasks: {
           orderBy: { order: "asc" },
+          // Non-admins never see parked subtasks (defense in depth).
+          where: session.user.role !== "ADMIN" ? { parkedAt: null } : undefined,
           // Row indicators: "does this subtask hold comments/files?" (Bart's
           // feedback — you couldn't tell without opening each one).
           include: { _count: { select: { comments: true, attachments: true } } },
@@ -56,6 +58,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     });
 
     if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // Parked tasks (v2.4) are invisible to non-admins — even to a member who
+    // still holds the task ID (old link/notification). Board, dashboard and
+    // search all hide parked; this is the single-task read guard so the
+    // invariant holds everywhere. 404 (not 403) so parked reads as "gone".
+    if (task.parkedAt && accessLevel !== "ADMIN") {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
@@ -205,6 +215,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     if (body.priority !== undefined) updateData.priority = body.priority;
+    // Numeric focus rank (v2.4). Any editor can set it; null/empty clears it.
+    // Clamp to 1..99 so a stray value can't corrupt sorting.
+    if (body.priorityNumber !== undefined) {
+      const n = Number(body.priorityNumber);
+      updateData.priorityNumber =
+        body.priorityNumber === null || body.priorityNumber === "" || !Number.isFinite(n)
+          ? null
+          : Math.min(99, Math.max(1, Math.round(n)));
+    }
+    // Park / unpark (v2.4) is ADMIN-ONLY. canEditTask above also allows MEMBERs,
+    // so this needs its own role check — a member PATCH of `parked` is ignored.
+    if (body.parked !== undefined && session.user.role === "ADMIN") {
+      updateData.parkedAt = body.parked ? new Date() : null;
+    }
     if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
     if (body.assigneeId !== undefined) updateData.assigneeId = body.assigneeId;
     if (body.columnId !== undefined) updateData.columnId = body.columnId;

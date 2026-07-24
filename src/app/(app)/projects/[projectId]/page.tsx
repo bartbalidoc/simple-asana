@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { SmartTaskDiscovery } from "@/components/tasks/SmartTaskDiscovery";
@@ -22,11 +23,16 @@ export default function ProjectPage() {
   const params = useParams();
   const projectId = params.projectId as string;
   const toast = useToast();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("");
+  // Admins can reveal parked tasks (hidden by default). Non-admins never
+  // receive parked tasks from the API, so this stays off/irrelevant for them.
+  const [showParked, setShowParked] = useState(false);
 
   // Open a specific task when linked from the dashboard (?task=<id>)
   useEffect(() => {
@@ -479,12 +485,32 @@ export default function ProjectPage() {
             Clear
           </button>
         )}
+        {/* Admins can reveal parked tasks. Only shown when this board actually
+            has parked tasks (they only reach the payload for admins). */}
+        {isAdmin && (project.tasks || []).some((t: any) => t.parkedAt) && (
+          <button
+            onClick={() => setShowParked((v) => !v)}
+            aria-pressed={showParked}
+            className={`ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+              showParked
+                ? "bg-gray-100 text-gray-800 border-gray-300"
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            {showParked ? "Hide parked" : "Show parked"}
+            <span className="tabular-nums text-gray-400">
+              {(project.tasks || []).filter((t: any) => t.parkedAt).length}
+            </span>
+          </button>
+        )}
       </div>
 
       {project.columns.length > 0 ? (
         <KanbanBoard
           columns={project.columns}
           tasks={(project.tasks || []).filter((t: any) => {
+            // Parked tasks are hidden unless an admin flips "Show parked".
+            if (t.parkedAt && !showParked) return false;
             const matchesSearch =
               !search ||
               (t.title || "").toLowerCase().includes(search.toLowerCase());

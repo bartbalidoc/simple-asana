@@ -37,6 +37,7 @@ interface Subtask {
   status: string;
   order?: number;
   assigneeId?: string | null;
+  priorityNumber?: number | null;
   // Row indicators — how many comments/files live inside this subtask.
   commentCount?: number;
   attachmentCount?: number;
@@ -404,6 +405,58 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
       onTaskUpdated?.(); // refresh board so the card badge updates immediately
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update priority");
+    }
+  };
+
+  // Focus rank (v2.4) — immediate save; empty clears it. Works for subtasks too
+  // (same endpoint), though this control sits on the parent panel.
+  const handlePriorityNumberChange = async (raw: string) => {
+    const value = raw.trim() === "" ? null : Math.min(99, Math.max(1, Math.round(Number(raw))));
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priorityNumber: value }),
+      });
+      if (!response.ok) throw new Error("Failed to update focus number");
+      const updated = await response.json();
+      setTask((prev: any) => ({
+        ...prev,
+        ...updated,
+        comments: prev?.comments ?? updated.comments ?? [],
+      }));
+      onTaskUpdated?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update focus number");
+    }
+  };
+
+  // Park / unpark (v2.4) — admin-only (the server also enforces it). Immediate
+  // save; the panel stays open so the admin can unpark or keep editing, while
+  // the board behind refreshes (the card drops off unless "Show parked" is on).
+  const [parking, setParking] = useState(false);
+  const handleTogglePark = async () => {
+    const nextParked = !task.parkedAt;
+    setParking(true);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parked: nextParked }),
+      });
+      if (!response.ok) throw new Error("Failed to update");
+      const updated = await response.json();
+      setTask((prev: any) => ({
+        ...prev,
+        ...updated,
+        comments: prev?.comments ?? updated.comments ?? [],
+      }));
+      onTaskUpdated?.();
+      toast(nextParked ? "Task parked — hidden from the board" : "Task is back on the board");
+    } catch (err) {
+      toast("Couldn't update the task. Please try again.", "error");
+    } finally {
+      setParking(false);
     }
   };
 
@@ -893,6 +946,39 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
               </Select>
             </div>
           )}
+
+          {/* Focus number (v2.4): 1 = do this first. Optional. */}
+          <div>
+            <label htmlFor="task-focus" className="block text-sm font-semibold text-gray-900 mb-2">
+              Focus #{" "}
+              <span className="font-normal text-gray-400">(1 = first)</span>
+            </label>
+            <input
+              id="task-focus"
+              type="number"
+              min={1}
+              max={99}
+              inputMode="numeric"
+              defaultValue={task.priorityNumber ?? ""}
+              key={task.priorityNumber ?? "none"}
+              onBlur={(e) => {
+                // Normalize to the value we'll actually store (1..99 or empty)
+                // and reflect it in the field, so an out-of-range entry never
+                // lingers on screen even when it clamps to the current value.
+                const raw = e.target.value.trim();
+                const n = Number(raw);
+                const canonical =
+                  raw === "" || !Number.isFinite(n)
+                    ? ""
+                    : String(Math.min(99, Math.max(1, Math.round(n))));
+                e.target.value = canonical;
+                const cur = task.priorityNumber != null ? String(task.priorityNumber) : "";
+                if (canonical !== cur) handlePriorityNumberChange(canonical);
+              }}
+              placeholder="—"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white transition focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 tabular-nums"
+            />
+          </div>
 
           {currentTemplate.fields.dueDate && (
             <div>
@@ -1496,6 +1582,14 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
                                   title="Open subtask"
                                   className="flex w-full items-baseline gap-2 text-left text-sm group/sub"
                                 >
+                                  {subtask.priorityNumber != null && (
+                                    <span
+                                      title={`Focus #${subtask.priorityNumber}`}
+                                      className="self-center flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[10px] font-bold tabular-nums"
+                                    >
+                                      {subtask.priorityNumber}
+                                    </span>
+                                  )}
                                   <span
                                     className={`min-w-0 break-words group-hover/sub:text-red-600 ${
                                       subtask.status === "DONE"
@@ -1624,7 +1718,25 @@ export function TaskDetailPanel({ taskId, onClose, onTaskUpdated, onOpenTask }: 
         {/* Danger zone — at the far end of the panel, away from the ✕ close
             button, so deleting is always a deliberate act. */}
         {task.accessLevel !== "GUEST" && (
-          <div className="border-t border-gray-100 pt-4 flex justify-end">
+          <div className="border-t border-gray-100 pt-4 flex items-center justify-between gap-2">
+            {/* Park / unpark — admin-only, top-level tasks only. Keeps the board
+                calm by shelving a task without deleting it. */}
+            {task.accessLevel === "ADMIN" && !task.parentTaskId ? (
+              <Button
+                onClick={handleTogglePark}
+                variant="subtle"
+                size="sm"
+                disabled={parking}
+              >
+                {parking
+                  ? "Saving…"
+                  : task.parkedAt
+                  ? "Put back on board"
+                  : "Park (hide from board)"}
+              </Button>
+            ) : (
+              <span />
+            )}
             <Button
               onClick={() => setConfirmDeleteTask(true)}
               variant="danger"

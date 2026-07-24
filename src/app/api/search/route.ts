@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
       }),
       // Pull a bounded set of accessible tasks, then decrypt + match titles.
       prisma.task.findMany({
-        where: { project: projectScope },
+        // Parked tasks (v2.4) are invisible to non-admins here too — otherwise
+        // a member could surface a parked task's title by searching for it.
+        where: { project: projectScope, ...(isAdmin ? {} : { parkedAt: null }) },
         select: {
           id: true,
           titleEnc: true,

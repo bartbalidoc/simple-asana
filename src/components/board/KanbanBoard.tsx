@@ -21,6 +21,8 @@ interface Task {
   title?: string;
   status: string;
   priority: string;
+  priorityNumber?: number | null;
+  parkedAt?: string | null;
   columnId: string | null;
   assigneeId?: string | null;
   assignee?: { id: string; name: string; email: string } | null;
@@ -112,6 +114,11 @@ export function KanbanBoard({
     }
   };
 
+  // Board stays in manual drag order (`order`). The focus number is shown as a
+  // badge rather than re-sorting the column — auto-sorting by focus number
+  // fought drag-to-reorder (a numbered card pinned to the top made drops of
+  // un-numbered cards snap back). People arrange boards spatially; the badge
+  // carries the priority signal.
   const byColumn = (columnId: string) =>
     items
       .filter((t) => t.columnId === columnId)
@@ -197,6 +204,8 @@ export function KanbanBoard({
                               role="button"
                               aria-label={task.title}
                               className={`group bg-white rounded-xl p-3.5 border transition cursor-pointer ${
+                                task.parkedAt ? "opacity-60" : ""
+                              } ${
                                 snap.isDragging
                                   ? "border-red-300 shadow-lg rotate-[0.5deg]"
                                   : "border-gray-200 shadow-sm hover:shadow-md hover:border-red-200"
@@ -205,6 +214,16 @@ export function KanbanBoard({
                               {/* Done: calm fade + green check, no strikethrough
                                   (struck-through titles read as errors at a glance). */}
                               <div className="flex items-start gap-1.5 mb-2.5">
+                                {/* Focus rank (v2.4): 1 = do first. Reads as a
+                                    quiet ordinal, not an alert. */}
+                                {task.priorityNumber != null && (
+                                  <span
+                                    title={`Focus #${task.priorityNumber}`}
+                                    className="mt-0.5 flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[11px] font-bold tabular-nums"
+                                  >
+                                    {task.priorityNumber}
+                                  </span>
+                                )}
                                 {task.status === "DONE" && (
                                   <CheckIcon
                                     size={14}
@@ -219,6 +238,11 @@ export function KanbanBoard({
                                 >
                                   {task.title || "Untitled Task"}
                                 </p>
+                                {task.parkedAt && (
+                                  <span className="mt-0.5 flex-shrink-0 text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                    Parked
+                                  </span>
+                                )}
                                 {task.repeatEvery && task.repeatEvery !== "NONE" && (
                                   <RefreshIcon
                                     size={13}

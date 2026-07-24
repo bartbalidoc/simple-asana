@@ -61,10 +61,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           include: {
             assignee: { select: userSelect },
             createdBy: { select: userSelect },
-            subtasks: true,
+            // Parked also hides nested subtasks from non-admins (defense in
+            // depth — parking is a top-level action in the UI, but never leak).
+            subtasks:
+              session.user.role !== "ADMIN"
+                ? { where: { parkedAt: null } }
+                : true,
           },
           where: {
             parentTaskId: null,
+            // Parked tasks (v2.4) are hidden from workers entirely; admins get
+            // them so the client "Show parked" toggle can reveal them.
+            ...(session.user.role !== "ADMIN" ? { parkedAt: null } : {}),
           },
         },
       },

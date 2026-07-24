@@ -20,6 +20,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "2.4",
+    date: "2026-07-24",
+    title: "A calmer board + a focus number for your tasks",
+    items: [
+      {
+        type: "new",
+        title: "“Park” tasks to keep the board calm",
+        detail:
+          "Admins can now Park a task (open it → “Park (hide from board)” at the bottom). Parked tasks drop off everyone's board and dashboard, so the board only shows what's actually being worked on — no more scary wall of cards. Nothing is deleted: admins see a “Show parked” button on each board to bring them back anytime. Only admins can park or unpark.",
+        requestedBy: "Bart",
+      },
+      {
+        type: "new",
+        title: "Give a task or subtask a focus number",
+        detail:
+          "Every task and subtask can get a Focus # (1 = do this first) in the task panel. The number shows as a small badge on board cards and on your dashboard, and pulls higher-focus cards to the top of their column — so it's obvious where to point your attention. It's optional; leave it blank and nothing changes.",
+        requestedBy: "Bart",
+      },
+    ],
+  },
+  {
     version: "2.3",
     date: "2026-07-23",
     title: "Write proper onboarding notes on the Welcome Hub",

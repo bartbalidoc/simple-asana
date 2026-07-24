@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
           assigneeId: session.user.id,
           parentTaskId: null,
           project: { isStaging: false },
+          parkedAt: null, // parked tasks (v2.4) drop off the dashboard too
         },
         include: {
           project: { select: { id: true, name: true } },
@@ -52,7 +53,10 @@ export async function GET(req: NextRequest) {
       }),
       // Tasks this user was invited to as a GUEST (one task, no project access).
       prisma.taskGuest.findMany({
-        where: { userId: session.user.id, task: { project: { isStaging: false } } },
+        where: {
+          userId: session.user.id,
+          task: { project: { isStaging: false }, parkedAt: null },
+        },
         include: {
           task: {
             include: {
@@ -64,12 +68,15 @@ export async function GET(req: NextRequest) {
       }),
       // Subtasks assigned to this user inside OTHER tasks (Meilinda's feedback:
       // "how can someone see their subtasks in other people's tasks?"). Shown
-      // on the dashboard with their parent task for context.
+      // on the dashboard with their parent task for context. Hidden if the
+      // subtask or its parent task is parked.
       prisma.task.findMany({
         where: {
           assigneeId: session.user.id,
           parentTaskId: { not: null },
           project: { isStaging: false },
+          parkedAt: null,
+          parentTask: { parkedAt: null },
         },
         include: {
           project: { select: { id: true, name: true } },
@@ -95,6 +102,7 @@ export async function GET(req: NextRequest) {
       title: decrypt(t.titleEnc),
       status: t.status,
       priority: t.priority,
+      priorityNumber: t.priorityNumber, // focus rank (v2.4)
       dueDate: t.dueDate,
       projectId: t.project?.id,
       projectName: t.project?.name,
@@ -114,6 +122,7 @@ export async function GET(req: NextRequest) {
         title: decrypt(st.titleEnc),
         status: st.status,
         priority: st.priority,
+        priorityNumber: st.priorityNumber, // focus rank (v2.4)
         dueDate: st.dueDate,
         projectId: st.project?.id,
         projectName: st.project?.name,

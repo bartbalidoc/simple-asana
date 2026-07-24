@@ -27,6 +27,8 @@ Brand + semantic roles (Tailwind utilities in use today):
 | Info/status accents | column dots: To Do `gray-400`, In Progress `blue-500`, Blocked `red-500`, In Review `amber-500`, Done `green-500` | Status dots/chips only |
 | Identity (avatars) | deterministic muted tints per person (`avatarColor()` in KanbanBoard: sky/emerald/violet/amber/teal/slate at `-100`/`-700`) | Initials avatars only — identity, never decoration; red excluded so it stays reserved |
 | Priority chips | High `red-50/700`, Low `gray-100/600`; **Medium (the default) renders no chip** | Boards + dashboard rows |
+| Focus-# badge | solid `bg-gray-900 text-white`, `rounded-md`, `min-w-[18px] h-[18px]`, `text-[11px]` (`text-[10px]` on 16px subtask rows), `font-bold tabular-nums` | Numeric focus rank (v2.4) on board cards, dashboard rows, subtask rows. Deliberately dark-solid + square-ish to read as an ordinal, distinct from the round red unread badge |
+| Parked chip | `bg-gray-100 text-gray-600 rounded-full text-[11px]` | Admin-parked (hidden) tasks; card body dims `opacity-60` |
 
 Rules:
 - **The `primary: #2563eb` token in `tailwind.config.ts` is stale scaffolding — never use `primary`/`secondary` classes or ad-hoc blue for chrome.** Blue appears ONLY as the In Progress status dot and conventional link color on file links.

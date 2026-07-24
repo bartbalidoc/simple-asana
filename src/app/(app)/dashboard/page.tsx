@@ -15,6 +15,7 @@ interface DashTask {
   title: string;
   status: string;
   priority: string;
+  priorityNumber?: number | null;
   dueDate: string | null;
   projectId?: string;
   projectName?: string;
@@ -272,6 +273,14 @@ export default function DashboardPage() {
                         className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition focus:outline-none focus-visible:bg-red-50/50"
                       >
                         <div className="min-w-0 flex-1 flex items-center gap-2">
+                          {t.priorityNumber != null && (
+                            <span
+                              title={`Focus #${t.priorityNumber}`}
+                              className="flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-gray-900 text-white text-[11px] font-bold tabular-nums"
+                            >
+                              {t.priorityNumber}
+                            </span>
+                          )}
                           {t.isSubtask && (
                             <span className="text-gray-400 flex-shrink-0" title="Subtask">
                               ↳

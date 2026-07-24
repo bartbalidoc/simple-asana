@@ -164,6 +164,13 @@ model Task {
 
   status         TaskStatus @default(TODO)
   priority       Priority   @default(MEDIUM)
+  // Numeric focus rank (Bart, v2.4): 1 = work on this first. Optional, orthogonal
+  // to the LOW/MEDIUM/HIGH enum. Applies to subtasks too (same model).
+  priorityNumber Int?
+  // "Park" a task (Bart, v2.4): admins hide clutter off the board without
+  // deleting it. null = live/on the board; set = parked (hidden from everyone's
+  // board + dashboard by default; admins can reveal via "Show parked").
+  parkedAt       DateTime?
   dueDate        DateTime?
   order          Float      @default(0)
   template       String     @default("general")
